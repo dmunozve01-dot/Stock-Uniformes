@@ -1,4 +1,6 @@
 const APP_CONFIG = {
+   GOOGLE_CLIENT_ID: "606508682227-1hsqjks835rg0fdlcincgrjpulhnpvac.apps.googleusercontent.com",
+
   // ⚠️ AQUÍ PEGA LA URL QUE TE DA GOOGLE APPS SCRIPT AL IMPLEMENTAR (Termina en /exec)
   DIRECT_API_URL: "https://script.google.com/macros/s/AKfycbyuSkv4Nb5ewFYEV5MBkdQx7Qj5-PF41XRl08RT-cLAX4nswFDiwIXHU5RAXachfT2z/exec",
 
