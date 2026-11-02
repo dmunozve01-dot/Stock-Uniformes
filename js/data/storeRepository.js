@@ -1,6 +1,6 @@
 class StoreRepository {
   constructor() {
-    this.memoryData = []; // Empezará vacío, cargaremos desde Sheets
+    this.memoryData = [];
   }
   async loadFromCloud() {
     if (typeof apiService !== 'undefined') {

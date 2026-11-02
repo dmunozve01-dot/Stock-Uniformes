@@ -1,3 +1,4 @@
+// Callback de Google
 window.handleCredentialResponse = function(response) {
   console.log("✅ Login de Google exitoso");
   const payload = parseJwt(response.credential);
@@ -10,10 +11,21 @@ async function saveUserSession(userData) {
   if (typeof apiService !== 'undefined') {
     try {
       const res = await apiService.getUserRole(userData.email);
-      userData.role = res.role;
+      
+      // VALIDACIÓN DE BLOQUEO
+      if (res.error === "TU_CUENTA_ESTA_BLOQUEADA") {
+        alert("🚫 Tu cuenta ha sido bloqueada por un administrador. Contacta a soporte.");
+        if (typeof google !== 'undefined' && google.accounts) {
+          google.accounts.id.disableAutoSelect();
+        }
+        return; 
+      }
+
+      userData.role = res.role || 'USER';
       if (res.name && res.name !== 'Desconocido') {
         userData.name = res.name;
       }
+      
       apiService.syncUser(userData); 
     } catch (err) {
       userData.role = "USER";
@@ -51,8 +63,8 @@ function checkSessionAndLoadUI() {
   }
 
   if (user.role === 'ADMIN') {
-    const btnAdmin = document.getElementById('btnAdmin');
-    if (btnAdmin) btnAdmin.classList.remove('hidden');
+    document.querySelectorAll('.admin-tab').forEach(el => el.classList.remove('hidden'));
+    document.querySelectorAll('.admin-col').forEach(el => el.classList.remove('hidden'));
   }
 }
 
@@ -63,13 +75,3 @@ function parseJwt(token) {
     return JSON.parse(decodeURIComponent(window.atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
   } catch (e) { return {}; }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  const btnDemo = document.getElementById('btnDemoLogin');
-  if (btnDemo) {
-    btnDemo.addEventListener('click', (e) => {
-      e.preventDefault();
-      saveUserSession({ name: "Operario Demo", email: "operario@almacen.com", picture: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png" });
-    });
-  }
-});
