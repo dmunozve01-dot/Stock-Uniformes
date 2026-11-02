@@ -23,22 +23,34 @@
       <button id="btnTabInv" class="btn-tab active"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
       <button id="btnTabMoves" class="btn-tab"><i class="fa-solid fa-right-left"></i> Movimientos</button>
       <button id="btnTabTrash" class="btn-tab"><i class="fa-solid fa-trash-can"></i> Papelera</button>
-      
-      <button id="btnTabExcel" class="btn-tab hidden" style="color: #16a34a;"><i class="fa-solid fa-file-excel"></i> Carga Excel</button>
-      
-      <button id="btnNewSku" class="btn-tab hidden" style="margin-left:auto; background:var(--text-dark); color:white;">
-        <i class="fa-solid fa-plus"></i> Nuevo SKU
-      </button>
     </div>
 
-    <!-- PANEL 1: INVENTARIO -->
+    <!-- PANEL 1: INVENTARIO Y CARGA MASIVA -->
     <section id="panelInv" class="panel active">
+      
+      <!-- Herramientas de Administrador (Solo visible para ADMIN) -->
+      <div id="adminTools" class="hidden" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <button class="btn btn-primary" id="btnNewSku" style="flex: 1; min-width: 200px;">
+          <i class="fa-solid fa-plus"></i> Registrar Prenda Nueva
+        </button>
+        <button class="btn" id="btnDownloadTemplate" style="background:#16a34a; color:white; flex: 1; min-width: 200px;">
+          <i class="fa-solid fa-download"></i> Descargar Plantilla Excel
+        </button>
+        <button class="btn" id="btnUploadExcel" style="background:#0ea5e9; color:white; flex: 1; min-width: 200px;">
+          <i class="fa-solid fa-file-excel"></i> Subir Excel (Sumar Stock)
+        </button>
+        <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
+      </div>
+
       <div class="card">
-        <h3><i class="fa-solid fa-boxes-stacked"></i> Stock Actual</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+          <h3 style="margin: 0;"><i class="fa-solid fa-boxes-stacked"></i> Stock Actual</h3>
+          <input type="text" id="searchInput" placeholder="🔍 Buscar prenda..." style="padding: 8px 15px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; width: 250px;">
+        </div>
         <div class="table-responsive">
           <table id="tableInventory" class="data-table">
             <thead>
-              <tr><th>ID SKU</th><th>Tipo</th><th>Talla</th><th>Color</th><th>Ubicación</th><th>Stock</th></tr>
+              <tr><th>ID SKU</th><th>Tipo</th><th>Talla</th><th>Color</th><th>Ubicación</th><th>Stock</th><th class="hidden admin-col">Acciones</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -46,18 +58,11 @@
       </div>
     </section>
 
-    <!-- PANEL 2: MOVIMIENTOS -->
+    <!-- PANEL 2: MOVIMIENTOS (ENTREGAS) -->
     <section id="panelMoves" class="panel hidden">
       <div class="card" id="formMoveContainer" style="margin-bottom: 25px;">
-        <h3><i class="fa-solid fa-arrow-right-arrow-left"></i> Registrar Movimiento</h3>
+        <h3><i class="fa-solid fa-hand-holding"></i> Registrar Entrega a Empleado</h3>
         <div class="form-grid">
-          <div class="form-group" style="max-width: 150px;">
-            <label>Tipo</label>
-            <select id="moveType">
-              <option value="ENTREGA">Entrega (-)</option>
-              <option value="INGRESO">Ingreso (+)</option>
-            </select>
-          </div>
           <div class="form-group">
             <label>SKU / Prenda</label>
             <select id="moveSkuSelect"></select>
@@ -75,7 +80,7 @@
         </div>
 
         <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 20px; width: 100%; max-width: 250px;">
-          <i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento
+          <i class="fa-solid fa-floppy-disk"></i> Entregar Prenda
         </button>
       </div>
 
@@ -96,6 +101,7 @@
     <section id="panelTrash" class="panel hidden">
       <div class="card">
         <h3><i class="fa-solid fa-trash-can"></i> Movimientos Anulados</h3>
+        <p style="color:var(--text-gray); font-size:0.9rem; margin-bottom:15px;">Recupera entregas anuladas por error.</p>
         <div class="table-responsive">
           <table id="tableTrash" class="data-table">
             <thead>
@@ -107,45 +113,25 @@
       </div>
     </section>
 
-    <!-- PANEL 4: CARGA MASIVA (EXCEL) -->
-    <section id="panelExcel" class="panel hidden">
-      <div class="card" style="text-align: center; padding: 40px 20px;">
-        <i class="fa-solid fa-file-excel" style="font-size: 4rem; color: #16a34a; margin-bottom: 20px;"></i>
-        <h3 style="justify-content: center;">Carga Masiva de Inventario</h3>
-        <p style="color: var(--text-gray); margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
-          Descarga la plantilla, llénala con las prendas nuevas que llegaron y súbela aquí. El sistema generará los IDs y registrará el stock automáticamente.
-        </p>
-        
-        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-          <button class="btn" id="btnDownloadTemplate" style="background:#16a34a; color:white; padding: 15px 30px; font-size: 1rem;">
-            <i class="fa-solid fa-download"></i> 1. Descargar Plantilla
-          </button>
-          
-          <button class="btn btn-primary" id="btnUploadExcel" style="padding: 15px 30px; font-size: 1rem;">
-            <i class="fa-solid fa-upload"></i> 2. Subir Excel Lleno
-          </button>
-          <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
-        </div>
-      </div>
-    </section>
-
   </div>
 
-  <!-- Modal para crear nuevo SKU -->
-  <div id="modalNewSku" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+  <!-- Modal para Crear/Editar SKU -->
+  <div id="modalSku" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
     <div class="card" style="width:90%; max-width:500px;">
-      <h3>Agregar Nueva Prenda al Inventario</h3>
-      <p style="font-size:0.8rem; color:var(--text-gray); margin-bottom:15px;">El ID se generará automáticamente (Ej: IN9900001)</p>
+      <h3 id="modalSkuTitle">Registrar Prenda Nueva</h3>
+      <p id="modalSkuId" style="font-size:0.8rem; color:var(--text-gray); margin-bottom:15px; display:none;"></p>
+      
       <div class="form-grid">
-        <div class="form-group"><label>Tipo</label><input type="text" id="newType" placeholder="Ej: Camisa"></div>
-        <div class="form-group"><label>Talla</label><input type="text" id="newSize" placeholder="Ej: M"></div>
-        <div class="form-group"><label>Color</label><input type="text" id="newColor" placeholder="Ej: Azul"></div>
-        <div class="form-group"><label>Ubicación</label><input type="text" id="newLocation" placeholder="Ej: Mass-09-01-02-01"></div>
-        <div class="form-group"><label>Stock Inicial</label><input type="number" id="newStock" value="0"></div>
+        <div class="form-group"><label>Tipo</label><input type="text" id="skuType" placeholder="Ej: Camisa"></div>
+        <div class="form-group"><label>Talla</label><input type="text" id="skuSize" placeholder="Ej: M"></div>
+        <div class="form-group"><label>Color</label><input type="text" id="skuColor" placeholder="Ej: Azul"></div>
+        <div class="form-group"><label>Ubicación</label><input type="text" id="skuLocation" placeholder="Ej: Mass-09-01-02-01"></div>
+        <div class="form-group"><label>Stock</label><input type="number" id="skuStock" value="0"></div>
       </div>
+      
       <div style="display:flex; gap:10px; margin-top:20px;">
         <button class="btn" id="btnCancelSku" style="flex:1; background:#e2e8f0; color:var(--text-dark);">Cancelar</button>
-        <button class="btn btn-primary" id="btnSaveSku" style="flex:1;">Guardar SKU</button>
+        <button class="btn btn-primary" id="btnSaveSku" style="flex:1;">Guardar</button>
       </div>
     </div>
   </div>

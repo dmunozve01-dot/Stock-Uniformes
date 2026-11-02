@@ -3,6 +3,7 @@ class AppController {
     this.currentUser = JSON.parse(sessionStorage.getItem('sw_user')) || JSON.parse(localStorage.getItem('sw_user'));
     this.inventory = [];
     this.moves = [];
+    this.editingSku = null; // Para saber si estamos creando o editando
   }
 
   async init() {
@@ -10,8 +11,9 @@ class AppController {
     checkSessionAndLoadUI();
 
     if (this.currentUser.role === 'ADMIN') {
-      document.getElementById('btnNewSku').classList.remove('hidden');
-      document.getElementById('btnTabExcel').classList.remove('hidden');
+      document.getElementById('adminTools').classList.remove('hidden');
+      // Mostrar columna de acciones en la tabla
+      document.querySelectorAll('.admin-col').forEach(el => el.classList.remove('hidden'));
     }
 
     this.setupListeners();
@@ -28,14 +30,36 @@ class AppController {
     this.renderTrash();
   }
 
-  renderInventory() {
+  renderInventory(filterText = '') {
     const tbody = document.querySelector('#tableInventory tbody');
     tbody.innerHTML = '';
-    if (this.inventory.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay prendas en inventario.</td></tr>';
+    
+    // Lógica de búsqueda
+    let filtered = this.inventory;
+    if (filterText) {
+      const text = filterText.toLowerCase();
+      filtered = this.inventory.filter(item => 
+        String(item.ID_SKU).toLowerCase().includes(text) || 
+        String(item.Tipo).toLowerCase().includes(text) ||
+        String(item.Color).toLowerCase().includes(text) ||
+        String(item.Ubicacion).toLowerCase().includes(text)
+      );
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontraron prendas.</td></tr>';
       return;
     }
-    this.inventory.forEach(item => {
+
+    filtered.forEach(item => {
+      const adminActions = this.currentUser.role === 'ADMIN' ? `
+        <td class="admin-col">
+          <button class="btn-restore" onclick="app.openEditModal('${item.ID_SKU}')" style="background:#e0f2fe; color:#0284c7;" title="Editar">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+        </td>
+      ` : '';
+
       tbody.innerHTML += `
         <tr>
           <td><b>${item.ID_SKU}</b></td>
@@ -44,6 +68,7 @@ class AppController {
           <td>${item.Color}</td>
           <td>${item.Ubicacion}</td>
           <td><b>${item.Stock_Actual}</b></td>
+          ${adminActions}
         </tr>
       `;
     });
@@ -63,7 +88,7 @@ class AppController {
     const activos = this.moves.filter(m => m.Estado === 'ACTIVO');
     
     if (activos.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No hay movimientos activos.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No hay entregas registradas.</td></tr>';
       return;
     }
 
@@ -83,7 +108,7 @@ class AppController {
           <td>${m.Nombre} ${m.Apellido}</td>
           <td>${m.Admin}</td>
           <td>
-            <button class="btn-delete" onclick="app.deleteMove('${m.ID_Movimiento}')" title="Anular y mover a papelera">
+            <button class="btn-delete" onclick="app.deleteMove('${m.ID_Movimiento}')" title="Anular">
               <i class="fa-solid fa-ban"></i>
             </button>
           </td>
@@ -113,7 +138,7 @@ class AppController {
           <td>${m.Cantidad}</td>
           <td>${m.Nombre} ${m.Apellido}</td>
           <td>
-            <button class="btn-restore" onclick="app.restoreMove('${m.ID_Movimiento}')" title="Restaurar movimiento">
+            <button class="btn-restore" onclick="app.restoreMove('${m.ID_Movimiento}')" title="Restaurar">
               <i class="fa-solid fa-rotate-left"></i> Restaurar
             </button>
           </td>
@@ -123,25 +148,27 @@ class AppController {
   }
 
   setupListeners() {
+    // Tabs
     document.getElementById('btnTabInv').addEventListener('click', () => this.switchTab('panelInv', 'btnTabInv'));
     document.getElementById('btnTabMoves').addEventListener('click', () => this.switchTab('panelMoves', 'btnTabMoves'));
     document.getElementById('btnTabTrash').addEventListener('click', () => this.switchTab('panelTrash', 'btnTabTrash'));
-    document.getElementById('btnTabExcel').addEventListener('click', () => this.switchTab('panelExcel', 'btnTabExcel'));
 
-    document.getElementById('moveType').addEventListener('change', (e) => {
-      const isDelivery = e.target.value === 'ENTREGA';
-      document.getElementById('deliveryFields').style.display = isDelivery ? 'flex' : 'none';
+    // Buscador en vivo
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      this.renderInventory(e.target.value);
     });
+
+    // Movimientos (Entregas)
     document.getElementById('btnSaveMove').addEventListener('click', () => this.saveMove());
 
-    document.getElementById('btnNewSku').addEventListener('click', () => {
-      document.getElementById('modalNewSku').classList.remove('hidden');
-    });
+    // Crear/Editar SKU
+    document.getElementById('btnNewSku').addEventListener('click', () => this.openCreateModal());
     document.getElementById('btnCancelSku').addEventListener('click', () => {
-      document.getElementById('modalNewSku').classList.add('hidden');
+      document.getElementById('modalSku').classList.add('hidden');
     });
-    document.getElementById('btnSaveSku').addEventListener('click', () => this.saveNewSku());
+    document.getElementById('btnSaveSku').addEventListener('click', () => this.saveSku());
 
+    // Excel
     document.getElementById('btnDownloadTemplate').addEventListener('click', () => this.downloadTemplate());
     document.getElementById('btnUploadExcel').addEventListener('click', () => {
       document.getElementById('excelFileInput').click();
@@ -156,23 +183,95 @@ class AppController {
     document.getElementById(btnId).classList.add('active');
   }
 
+  // ==========================================
+  // CREAR Y EDITAR SKU
+  // ==========================================
+  openCreateModal() {
+    this.editingSku = null;
+    document.getElementById('modalSkuTitle').innerText = "Registrar Prenda Nueva";
+    document.getElementById('modalSkuId').style.display = 'none';
+    
+    document.getElementById('skuType').value = '';
+    document.getElementById('skuSize').value = '';
+    document.getElementById('skuColor').value = '';
+    document.getElementById('skuLocation').value = '';
+    document.getElementById('skuStock').value = '0';
+    
+    document.getElementById('modalSku').classList.remove('hidden');
+  }
+
+  openEditModal(skuId) {
+    const item = this.inventory.find(i => i.ID_SKU === skuId);
+    if (!item) return;
+
+    this.editingSku = skuId;
+    document.getElementById('modalSkuTitle').innerText = "Editar Prenda";
+    document.getElementById('modalSkuId').style.display = 'block';
+    document.getElementById('modalSkuId').innerText = `ID: ${item.ID_SKU}`;
+    
+    document.getElementById('skuType').value = item.Tipo;
+    document.getElementById('skuSize').value = item.Talla;
+    document.getElementById('skuColor').value = item.Color;
+    document.getElementById('skuLocation').value = item.Ubicacion;
+    document.getElementById('skuStock').value = item.Stock_Actual;
+    
+    document.getElementById('modalSku').classList.remove('hidden');
+  }
+
+  async saveSku() {
+    const item = {
+      tipo: document.getElementById('skuType').value,
+      talla: document.getElementById('skuSize').value,
+      color: document.getElementById('skuColor').value,
+      ubicacion: document.getElementById('skuLocation').value,
+      stock: parseInt(document.getElementById('skuStock').value) || 0
+    };
+
+    if (!item.tipo) return alert("El Tipo de prenda es obligatorio.");
+
+    const btn = document.getElementById('btnSaveSku');
+    btn.disabled = true;
+
+    let success = false;
+    if (this.editingSku) {
+      // Es edición
+      item.id_sku = this.editingSku;
+      success = await apiService.updateInventory(item);
+    } else {
+      // Es creación
+      success = await apiService.createInventory(item);
+    }
+
+    if (success) {
+      alert(this.editingSku ? "✅ Prenda actualizada." : "✅ Prenda registrada.");
+      document.getElementById('modalSku').classList.add('hidden');
+      await this.loadData();
+    } else {
+      alert("❌ Error al guardar.");
+    }
+    btn.disabled = false;
+  }
+
+  // ==========================================
+  // LÓGICA DE ENTREGAS
+  // ==========================================
   async saveMove() {
-    const tipo = document.getElementById('moveType').value;
     const sku = document.getElementById('moveSkuSelect').value;
     const cantidad = parseInt(document.getElementById('moveQty').value);
     
     if (!sku || cantidad < 1) return alert("Seleccione un SKU y cantidad válida.");
 
     const moveData = {
-      tipo, id_sku: sku, cantidad,
-      dni: tipo === 'ENTREGA' ? document.getElementById('moveDni').value : '-',
-      nombre: tipo === 'ENTREGA' ? document.getElementById('moveName').value : '-',
-      apellido: tipo === 'ENTREGA' ? document.getElementById('moveLastname').value : '-',
+      tipo: 'ENTREGA', // Forzado a entrega por la UI
+      id_sku: sku, cantidad,
+      dni: document.getElementById('moveDni').value,
+      nombre: document.getElementById('moveName').value,
+      apellido: document.getElementById('moveLastname').value,
       admin: this.currentUser.name
     };
 
-    if (tipo === 'ENTREGA' && (!moveData.dni || !moveData.nombre)) {
-      return alert("Para entregas, el DNI y Nombre son obligatorios.");
+    if (!moveData.dni || !moveData.nombre) {
+      return alert("El DNI y Nombre son obligatorios.");
     }
 
     const btn = document.getElementById('btnSaveMove');
@@ -181,65 +280,35 @@ class AppController {
     const success = await apiService.registerMove(moveData);
     
     if (success) {
-      alert("✅ Movimiento registrado.");
+      alert("✅ Entrega registrada y stock descontado.");
       document.getElementById('moveQty').value = '1';
       document.getElementById('moveDni').value = '';
       document.getElementById('moveName').value = '';
       document.getElementById('moveLastname').value = '';
       setTimeout(async () => { 
         await this.loadData(); 
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento'; 
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Entregar Prenda'; 
       }, 1500);
     } else {
       alert("❌ Error al registrar.");
-      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento';
+      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Entregar Prenda';
     }
   }
 
   async deleteMove(id) {
-    if (!confirm("¿Seguro que deseas anular este movimiento?")) return;
+    if (!confirm("¿Seguro que deseas anular esta entrega? El stock regresará.")) return;
     const success = await apiService.toggleMoveStatus(id, 'ANULADO');
     if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
   async restoreMove(id) {
-    if (!confirm("¿Restaurar este movimiento?")) return;
+    if (!confirm("¿Restaurar esta entrega? El stock se descontará nuevamente.")) return;
     const success = await apiService.toggleMoveStatus(id, 'ACTIVO');
     if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
-  async saveNewSku() {
-    const item = {
-      tipo: document.getElementById('newType').value,
-      talla: document.getElementById('newSize').value,
-      color: document.getElementById('newColor').value,
-      ubicacion: document.getElementById('newLocation').value,
-      stock: parseInt(document.getElementById('newStock').value) || 0
-    };
-
-    if (!item.tipo) return alert("El Tipo de prenda es obligatorio.");
-
-    const btn = document.getElementById('btnSaveSku');
-    btn.disabled = true;
-
-    const success = await apiService.createInventory(item);
-    if (success) {
-      alert("✅ SKU creado con éxito.");
-      document.getElementById('modalNewSku').classList.add('hidden');
-      document.getElementById('newType').value = '';
-      document.getElementById('newSize').value = '';
-      document.getElementById('newColor').value = '';
-      document.getElementById('newLocation').value = '';
-      document.getElementById('newStock').value = '0';
-      setTimeout(async () => { await this.loadData(); btn.disabled = false; }, 1500);
-    } else {
-      alert("❌ Error al crear.");
-      btn.disabled = false;
-    }
-  }
-
   // ==========================================
-  // LÓGICA DE CARGA MASIVA (EXCEL)
+  // CARGA MASIVA POR EXCEL (SUMA STOCK)
   // ==========================================
   downloadTemplate() {
     const data = [
@@ -281,12 +350,12 @@ class AppController {
           stock: parseInt(row.Stock) || 0
         }));
 
-        if (itemsToUpload.length === 0) throw new Error("No se encontraron datos válidos (columna 'Tipo' vacía).");
+        if (itemsToUpload.length === 0) throw new Error("No se encontraron datos válidos.");
 
-        const success = await apiService.bulkCreateInventory(itemsToUpload);
+        const res = await apiService.bulkCreateInventory(itemsToUpload);
         
-        if (success) {
-          alert(`✅ Se subieron ${itemsToUpload.length} prendas correctamente.`);
+        if (res.success) {
+          alert(`✅ ${res.msg}`);
           await this.loadData();
         } else {
           alert("❌ Error al subir el lote.");
