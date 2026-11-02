@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Control de Stock</title>
+  <title>SmartWarehouse - Grupo ANC</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="./css/main.css">
 </head>
@@ -12,28 +12,34 @@
     
     <!-- Cabecera de Usuario -->
     <div class="user-profile">
-      <img id="userAvatar" src="" alt="Avatar" class="avatar">
+      <img id="userAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Avatar" class="avatar">
       <div class="user-info">
-        <strong id="userName">...</strong>
+        <strong id="userName">Cargando...</strong>
         <span id="userEmail" class="email">...</span>
       </div>
       <button class="btn-logout" id="btnLogout"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
     </div>
 
-    <!-- Pestañas -->
+    <!-- Pestañas de Navegación -->
     <div class="mode-switch">
-      <button id="btnUser" class="btn-tab active"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
-      <button id="btnAdmin" class="btn-tab hidden"><i class="fa-solid fa-user-gear"></i> Gestión y Entregas</button>
+      <button id="btnTabInv" class="btn-tab active"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
+      <button id="btnTabMoves" class="btn-tab"><i class="fa-solid fa-right-left"></i> Movimientos</button>
+      <button id="btnTabTrash" class="btn-tab"><i class="fa-solid fa-trash-can"></i> Papelera</button>
+      
+      <!-- Botón Admin para agregar nuevo SKU -->
+      <button id="btnNewSku" class="btn-tab hidden" style="margin-left:auto; background:var(--text-dark); color:white;">
+        <i class="fa-solid fa-plus"></i> Nuevo SKU
+      </button>
     </div>
 
-    <!-- PANEL OPERARIO (Solo lectura) -->
-    <section id="userPanel" class="panel active">
+    <!-- PANEL 1: INVENTARIO -->
+    <section id="panelInv" class="panel active">
       <div class="card">
-        <h3><i class="fa-solid fa-boxes-stacked"></i> Stock Disponible</h3>
+        <h3><i class="fa-solid fa-boxes-stacked"></i> Stock Actual</h3>
         <div class="table-responsive">
-          <table id="tableInventoryUser" class="data-table">
+          <table id="tableInventory" class="data-table">
             <thead>
-              <tr><th>Tipo</th><th>Talla</th><th>Color</th><th>Stock</th><th>Ubicación</th></tr>
+              <tr><th>ID SKU</th><th>Tipo</th><th>Talla</th><th>Color</th><th>Ubicación</th><th>Stock</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -41,46 +47,94 @@
       </div>
     </section>
 
-    <!-- PANEL ADMINISTRADOR -->
-    <section id="adminPanel" class="panel">
+    <!-- PANEL 2: MOVIMIENTOS (ENTREGAS E INGRESOS) -->
+    <section id="panelMoves" class="panel hidden">
       
-      <!-- Formulario de Entrega -->
-      <div class="card" style="margin-bottom: 20px;">
-        <h3><i class="fa-solid fa-hand-holding"></i> Registrar Entrega de Uniforme</h3>
+      <!-- Formulario de Entrada/Salida -->
+      <div class="card" id="formMoveContainer" style="margin-bottom: 25px;">
+        <h3><i class="fa-solid fa-arrow-right-arrow-left"></i> Registrar Movimiento</h3>
         <div class="form-grid">
-          <div class="form-group">
-            <label>Email del Empleado</label>
-            <input type="email" id="deliveryUserEmail" placeholder="empleado@empresa.com">
+          <div class="form-group" style="max-width: 150px;">
+            <label>Tipo</label>
+            <select id="moveType">
+              <option value="ENTREGA">Entrega (-)</option>
+              <option value="INGRESO">Ingreso (+)</option>
+            </select>
           </div>
           <div class="form-group">
-            <label>Uniforme</label>
-            <select id="deliveryItemSelect"></select>
+            <label>SKU / Prenda</label>
+            <select id="moveSkuSelect"></select>
           </div>
           <div class="form-group" style="max-width: 100px;">
             <label>Cantidad</label>
-            <input type="number" id="deliveryQty" value="1" min="1">
-          </div>
-          <div class="form-group" style="display: flex; align-items: flex-end;">
-            <button class="btn btn-primary" id="btnDeliverItem"><i class="fa-solid fa-check"></i> Entregar</button>
+            <input type="number" id="moveQty" value="1" min="1">
           </div>
         </div>
+        
+        <!-- Campos extra para entregas -->
+        <div id="deliveryFields" class="form-grid" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+          <div class="form-group"><label>DNI Empleado</label><input type="text" id="moveDni" placeholder="Ej: 12345678"></div>
+          <div class="form-group"><label>Nombres</label><input type="text" id="moveName" placeholder="Ej: Juan"></div>
+          <div class="form-group"><label>Apellidos</label><input type="text" id="moveLastname" placeholder="Ej: Perez"></div>
+        </div>
+
+        <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 20px; width: 100%; max-width: 250px;">
+          <i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento
+        </button>
       </div>
 
       <!-- Tabla de Historial -->
       <div class="card">
-        <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Entregas</h3>
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial General</h3>
         <div class="table-responsive">
-          <table id="tableHistory" class="data-table">
+          <table id="tableMoves" class="data-table">
             <thead>
-              <tr><th>Fecha</th><th>Empleado</th><th>Uniforme (ID)</th><th>Cantidad</th><th>Admin</th></tr>
+              <tr><th>ID Mov.</th><th>Fecha</th><th>Tipo</th><th>SKU</th><th>Cant.</th><th>DNI</th><th>Empleado</th><th>Admin</th><th>Acción</th></tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
       </div>
     </section>
+
+    <!-- PANEL 3: PAPELERA (RESTAURAR) -->
+    <section id="panelTrash" class="panel hidden">
+      <div class="card">
+        <h3><i class="fa-solid fa-trash-can"></i> Movimientos Anulados</h3>
+        <p style="color:var(--text-gray); font-size:0.9rem; margin-bottom:15px;">Aquí puedes recuperar entregas o ingresos que se borraron por error. Al restaurar, el stock se ajustará automáticamente.</p>
+        <div class="table-responsive">
+          <table id="tableTrash" class="data-table">
+            <thead>
+              <tr><th>ID Mov.</th><th>Fecha</th><th>Tipo</th><th>SKU</th><th>Cant.</th><th>Empleado</th><th>Acción</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
   </div>
 
+  <!-- Modal para crear nuevo SKU -->
+  <div id="modalNewSku" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+    <div class="card" style="width:90%; max-width:500px;">
+      <h3>Agregar Nueva Prenda al Inventario</h3>
+      <p style="font-size:0.8rem; color:var(--text-gray); margin-bottom:15px;">El ID se generará automáticamente (Ej: IN9900001)</p>
+      <div class="form-grid">
+        <div class="form-group"><label>Tipo</label><input type="text" id="newType" placeholder="Ej: Camisa"></div>
+        <div class="form-group"><label>Talla</label><input type="text" id="newSize" placeholder="Ej: M"></div>
+        <div class="form-group"><label>Color</label><input type="text" id="newColor" placeholder="Ej: Azul"></div>
+        <div class="form-group"><label>Ubicación</label><input type="text" id="newLocation" placeholder="Ej: Mass-09-01-02-01"></div>
+        <div class="form-group"><label>Stock Inicial</label><input type="number" id="newStock" value="0"></div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn" id="btnCancelSku" style="flex:1; background:#e2e8f0; color:var(--text-dark);">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveSku" style="flex:1;">Guardar SKU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
   <script src="./js/config.js"></script>
   <script src="./js/core/apiService.js"></script>
   <script src="./js/auth.js"></script>
