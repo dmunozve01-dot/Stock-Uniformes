@@ -10,7 +10,6 @@
 <body>
   <div class="dashboard-container">
     
-    <!-- Cabecera de Usuario -->
     <div class="user-profile">
       <img id="userAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Avatar" class="avatar">
       <div class="user-info">
@@ -20,13 +19,13 @@
       <button class="btn-logout" id="btnLogout"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
     </div>
 
-    <!-- Pestañas de Navegación -->
     <div class="mode-switch">
       <button id="btnTabInv" class="btn-tab active"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
       <button id="btnTabMoves" class="btn-tab"><i class="fa-solid fa-right-left"></i> Movimientos</button>
       <button id="btnTabTrash" class="btn-tab"><i class="fa-solid fa-trash-can"></i> Papelera</button>
       
-      <!-- Botón Admin para agregar nuevo SKU -->
+      <button id="btnTabExcel" class="btn-tab hidden" style="color: #16a34a;"><i class="fa-solid fa-file-excel"></i> Carga Excel</button>
+      
       <button id="btnNewSku" class="btn-tab hidden" style="margin-left:auto; background:var(--text-dark); color:white;">
         <i class="fa-solid fa-plus"></i> Nuevo SKU
       </button>
@@ -47,10 +46,8 @@
       </div>
     </section>
 
-    <!-- PANEL 2: MOVIMIENTOS (ENTREGAS E INGRESOS) -->
+    <!-- PANEL 2: MOVIMIENTOS -->
     <section id="panelMoves" class="panel hidden">
-      
-      <!-- Formulario de Entrada/Salida -->
       <div class="card" id="formMoveContainer" style="margin-bottom: 25px;">
         <h3><i class="fa-solid fa-arrow-right-arrow-left"></i> Registrar Movimiento</h3>
         <div class="form-grid">
@@ -71,7 +68,6 @@
           </div>
         </div>
         
-        <!-- Campos extra para entregas -->
         <div id="deliveryFields" class="form-grid" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
           <div class="form-group"><label>DNI Empleado</label><input type="text" id="moveDni" placeholder="Ej: 12345678"></div>
           <div class="form-group"><label>Nombres</label><input type="text" id="moveName" placeholder="Ej: Juan"></div>
@@ -83,7 +79,6 @@
         </button>
       </div>
 
-      <!-- Tabla de Historial -->
       <div class="card">
         <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial General</h3>
         <div class="table-responsive">
@@ -97,11 +92,10 @@
       </div>
     </section>
 
-    <!-- PANEL 3: PAPELERA (RESTAURAR) -->
+    <!-- PANEL 3: PAPELERA -->
     <section id="panelTrash" class="panel hidden">
       <div class="card">
         <h3><i class="fa-solid fa-trash-can"></i> Movimientos Anulados</h3>
-        <p style="color:var(--text-gray); font-size:0.9rem; margin-bottom:15px;">Aquí puedes recuperar entregas o ingresos que se borraron por error. Al restaurar, el stock se ajustará automáticamente.</p>
         <div class="table-responsive">
           <table id="tableTrash" class="data-table">
             <thead>
@@ -109,6 +103,28 @@
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL 4: CARGA MASIVA (EXCEL) -->
+    <section id="panelExcel" class="panel hidden">
+      <div class="card" style="text-align: center; padding: 40px 20px;">
+        <i class="fa-solid fa-file-excel" style="font-size: 4rem; color: #16a34a; margin-bottom: 20px;"></i>
+        <h3 style="justify-content: center;">Carga Masiva de Inventario</h3>
+        <p style="color: var(--text-gray); margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+          Descarga la plantilla, llénala con las prendas nuevas que llegaron y súbela aquí. El sistema generará los IDs y registrará el stock automáticamente.
+        </p>
+        
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn" id="btnDownloadTemplate" style="background:#16a34a; color:white; padding: 15px 30px; font-size: 1rem;">
+            <i class="fa-solid fa-download"></i> 1. Descargar Plantilla
+          </button>
+          
+          <button class="btn btn-primary" id="btnUploadExcel" style="padding: 15px 30px; font-size: 1rem;">
+            <i class="fa-solid fa-upload"></i> 2. Subir Excel Lleno
+          </button>
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
         </div>
       </div>
     </section>
@@ -134,21 +150,10 @@
     </div>
   </div>
 
-  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/core/apiService.js"></script>
   <script src="./js/auth.js"></script>
   <script src="./js/ui/appController.js"></script>
-
-  <!-- Bloqueo del botón "Atrás" -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const user = sessionStorage.getItem('sw_user') || localStorage.getItem('sw_user');
-      if (user) {
-        history.pushState(null, null, location.href);
-        window.onpopstate = function () { history.go(1); };
-      }
-    });
-  </script>
 </body>
 </html>

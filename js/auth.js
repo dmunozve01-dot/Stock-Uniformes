@@ -22,11 +22,8 @@ async function saveUserSession(userData) {
     userData.role = "USER";
   }
 
-  if (remember) {
-    localStorage.setItem('sw_user', JSON.stringify(userData));
-  } else {
-    sessionStorage.setItem('sw_user', JSON.stringify(userData));
-  }
+  if (remember) localStorage.setItem('sw_user', JSON.stringify(userData));
+  else sessionStorage.setItem('sw_user', JSON.stringify(userData));
 
   window.location.replace('app.html');
 }

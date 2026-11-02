@@ -81,5 +81,18 @@ class APIService {
       return true; 
     } catch (err) { return false; }
   }
+
+  async bulkCreateInventory(itemsArray) {
+    const url = await this.getBaseUrl();
+    if (!url) return false;
+    try {
+      await fetch(url, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bulkCreateInventory", items: itemsArray })
+      });
+      return true; 
+    } catch (err) { return false; }
+  }
 }
 const apiService = new APIService();

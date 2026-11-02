@@ -9,9 +9,9 @@ class AppController {
     if (!this.currentUser) return window.location.replace('index.html');
     checkSessionAndLoadUI();
 
-    // Mostrar botón de Admin solo si el rol es ADMIN
     if (this.currentUser.role === 'ADMIN') {
       document.getElementById('btnNewSku').classList.remove('hidden');
+      document.getElementById('btnTabExcel').classList.remove('hidden');
     }
 
     this.setupListeners();
@@ -19,12 +19,10 @@ class AppController {
   }
 
   async loadData() {
-    // 1. Cargar Inventario
     this.inventory = await apiService.getInventory();
     this.renderInventory();
     this.populateSkuSelect();
 
-    // 2. Cargar Movimientos (Historial y Papelera)
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
@@ -62,7 +60,6 @@ class AppController {
   renderMoves() {
     const tbody = document.querySelector('#tableMoves tbody');
     tbody.innerHTML = '';
-    // Solo mostramos los ACTIVOS en el historial principal
     const activos = this.moves.filter(m => m.Estado === 'ACTIVO');
     
     if (activos.length === 0) {
@@ -98,7 +95,6 @@ class AppController {
   renderTrash() {
     const tbody = document.querySelector('#tableTrash tbody');
     tbody.innerHTML = '';
-    // Solo mostramos los ANULADOS
     const anulados = this.moves.filter(m => m.Estado === 'ANULADO');
     
     if (anulados.length === 0) {
@@ -127,21 +123,17 @@ class AppController {
   }
 
   setupListeners() {
-    // Cambio de pestañas
     document.getElementById('btnTabInv').addEventListener('click', () => this.switchTab('panelInv', 'btnTabInv'));
     document.getElementById('btnTabMoves').addEventListener('click', () => this.switchTab('panelMoves', 'btnTabMoves'));
     document.getElementById('btnTabTrash').addEventListener('click', () => this.switchTab('panelTrash', 'btnTabTrash'));
+    document.getElementById('btnTabExcel').addEventListener('click', () => this.switchTab('panelExcel', 'btnTabExcel'));
 
-    // Mostrar/ocultar campos de empleado según el tipo de movimiento
     document.getElementById('moveType').addEventListener('change', (e) => {
       const isDelivery = e.target.value === 'ENTREGA';
       document.getElementById('deliveryFields').style.display = isDelivery ? 'flex' : 'none';
     });
-
-    // Guardar movimiento
     document.getElementById('btnSaveMove').addEventListener('click', () => this.saveMove());
 
-    // Modal Nuevo SKU
     document.getElementById('btnNewSku').addEventListener('click', () => {
       document.getElementById('modalNewSku').classList.remove('hidden');
     });
@@ -149,6 +141,12 @@ class AppController {
       document.getElementById('modalNewSku').classList.add('hidden');
     });
     document.getElementById('btnSaveSku').addEventListener('click', () => this.saveNewSku());
+
+    document.getElementById('btnDownloadTemplate').addEventListener('click', () => this.downloadTemplate());
+    document.getElementById('btnUploadExcel').addEventListener('click', () => {
+      document.getElementById('excelFileInput').click();
+    });
+    document.getElementById('excelFileInput').addEventListener('change', (e) => this.handleExcelUpload(e));
   }
 
   switchTab(panelId, btnId) {
@@ -166,9 +164,7 @@ class AppController {
     if (!sku || cantidad < 1) return alert("Seleccione un SKU y cantidad válida.");
 
     const moveData = {
-      tipo, 
-      id_sku: sku, 
-      cantidad,
+      tipo, id_sku: sku, cantidad,
       dni: tipo === 'ENTREGA' ? document.getElementById('moveDni').value : '-',
       nombre: tipo === 'ENTREGA' ? document.getElementById('moveName').value : '-',
       apellido: tipo === 'ENTREGA' ? document.getElementById('moveLastname').value : '-',
@@ -180,8 +176,7 @@ class AppController {
     }
 
     const btn = document.getElementById('btnSaveMove');
-    btn.disabled = true; 
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
 
     const success = await apiService.registerMove(moveData);
     
@@ -191,34 +186,26 @@ class AppController {
       document.getElementById('moveDni').value = '';
       document.getElementById('moveName').value = '';
       document.getElementById('moveLastname').value = '';
-      
-      // Esperamos un momento para que Google Sheets procese el cambio
       setTimeout(async () => { 
         await this.loadData(); 
-        btn.disabled = false; 
-        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento'; 
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento'; 
       }, 1500);
     } else {
       alert("❌ Error al registrar.");
-      btn.disabled = false; 
-      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento';
+      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Movimiento';
     }
   }
 
   async deleteMove(id) {
-    if (!confirm("¿Seguro que deseas anular este movimiento? El stock se ajustará y podrás recuperarlo en la papelera.")) return;
+    if (!confirm("¿Seguro que deseas anular este movimiento?")) return;
     const success = await apiService.toggleMoveStatus(id, 'ANULADO');
-    if (success) { 
-      setTimeout(async () => await this.loadData(), 1500); 
-    }
+    if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
   async restoreMove(id) {
-    if (!confirm("¿Restaurar este movimiento? El stock volverá a como estaba.")) return;
+    if (!confirm("¿Restaurar este movimiento?")) return;
     const success = await apiService.toggleMoveStatus(id, 'ACTIVO');
-    if (success) { 
-      setTimeout(async () => await this.loadData(), 1500); 
-    }
+    if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
   async saveNewSku() {
@@ -244,19 +231,79 @@ class AppController {
       document.getElementById('newColor').value = '';
       document.getElementById('newLocation').value = '';
       document.getElementById('newStock').value = '0';
-      
-      setTimeout(async () => { 
-        await this.loadData(); 
-        btn.disabled = false; 
-      }, 1500);
+      setTimeout(async () => { await this.loadData(); btn.disabled = false; }, 1500);
     } else {
       alert("❌ Error al crear.");
       btn.disabled = false;
     }
   }
+
+  // ==========================================
+  // LÓGICA DE CARGA MASIVA (EXCEL)
+  // ==========================================
+  downloadTemplate() {
+    const data = [
+      ["Tipo", "Talla", "Color", "Ubicacion", "Stock"],
+      ["Camisa", "M", "Azul", "Mass-09-01-02-01", 10],
+      ["Pantalon", "32", "Negro", "Mass-09-01-02-02", 5]
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+    XLSX.writeFile(wb, "Plantilla_Inventario_ANC.xlsx");
+  }
+
+  async handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('btnUploadExcel');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+    btn.disabled = true;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        if (jsonData.length === 0) throw new Error("El archivo está vacío.");
+
+        const itemsToUpload = jsonData.filter(row => row.Tipo).map(row => ({
+          tipo: row.Tipo || '-',
+          talla: row.Talla || '-',
+          color: row.Color || '-',
+          ubicacion: row.Ubicacion || '-',
+          stock: parseInt(row.Stock) || 0
+        }));
+
+        if (itemsToUpload.length === 0) throw new Error("No se encontraron datos válidos (columna 'Tipo' vacía).");
+
+        const success = await apiService.bulkCreateInventory(itemsToUpload);
+        
+        if (success) {
+          alert(`✅ Se subieron ${itemsToUpload.length} prendas correctamente.`);
+          await this.loadData();
+        } else {
+          alert("❌ Error al subir el lote.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("❌ Error al leer el Excel: " + err.message);
+      } finally {
+        event.target.value = '';
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
 }
 
-// Inicializar la app cuando el DOM esté listo
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('tableInventory')) {

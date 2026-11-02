@@ -4,26 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>SmartWarehouse - Login | Grupo ANC</title>
-  
-  <!-- FontAwesome para los iconos -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <!-- Estilos principales -->
   <link rel="stylesheet" href="./css/main.css">
 </head>
 <body class="login-body">
-  
   <div class="login-card">
-    
-    <!-- Logo de la empresa (Guarda tu imagen en assets/logo.png) -->
     <div class="brand-logo">
       <img src="./assets/logo.png" alt="Grupo ANC" onerror="this.src='https://via.placeholder.com/180x60/ffffff/D81B60?text=Grupo+ANC'">
     </div>
-    
     <h2>Control de Uniformes</h2>
     <p>Ingresa con tu cuenta corporativa</p>
 
-    <!-- Contenedor donde Google inyectará su botón oficial -->
     <div class="google-btn-wrapper" id="googleBtnContainer">
       <div style="color: #64748b; font-size: 0.85rem;">Cargando Google Sign-In...</div>
     </div>
@@ -35,63 +26,38 @@
     
     <div class="divider"><span>o</span></div>
     
-    <!-- Botón para probar sin cuenta de Google -->
     <button class="btn-secondary-login" type="button" id="btnDemoLogin">
       <i class="fa-solid fa-user-gear"></i> Entrar como Demo
     </button>
   </div>
 
-  <!-- 
-    IMPORTANTE: Cargamos primero config.js para tener el Client ID disponible 
-    antes de que se cargue el script de Google.
-  -->
   <script src="./js/config.js"></script>
-  
-  <!-- Script oficial de Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
-  
-  <!-- Nuestros scripts -->
   <script src="./js/core/apiService.js"></script>
   <script src="./js/auth.js"></script>
 
-  <!-- Script para inicializar el botón de Google con el Client ID del config -->
   <script>
     function initGoogleSignIn() {
-      // Verificamos que Google cargó y que tenemos el Client ID configurado
       if (typeof google === 'undefined' || !APP_CONFIG.GOOGLE_CLIENT_ID) {
-        console.error("❌ Google Sign-In no disponible o Client ID no configurado.");
         document.getElementById('googleBtnContainer').innerHTML = 
-          '<div style="color: #dc2626; font-size: 0.85rem; text-align:center;">Error al cargar Google.<br>Revisa config.js</div>';
+          '<div style="color: #dc2626; font-size: 0.85rem;">Error al cargar Google</div>';
         return;
       }
 
-      // Inicializamos el cliente de Google
       google.accounts.id.initialize({
         client_id: APP_CONFIG.GOOGLE_CLIENT_ID,
-        callback: handleCredentialResponse // Esta función está en auth.js
+        callback: handleCredentialResponse
       });
 
-      // Renderizamos el botón en el contenedor
       google.accounts.id.renderButton(
         document.getElementById('googleBtnContainer'),
-        { 
-          type: 'standard', 
-          shape: 'pill', 
-          theme: 'outline', 
-          text: 'signin_with', 
-          size: 'large',
-          width: 280,
-          logo_alignment: 'left'
-        }
+        { type: 'standard', shape: 'pill', theme: 'outline', text: 'signin_with', size: 'large', width: 280 }
       );
     }
 
-    // Si el usuario ya está logueado (tiene sesión activa), lo enviamos directo a la app
     document.addEventListener('DOMContentLoaded', () => {
       const user = sessionStorage.getItem('sw_user') || localStorage.getItem('sw_user');
-      if (user) {
-        window.location.replace('app.html');
-      }
+      if (user) window.location.replace('app.html');
     });
   </script>
 </body>
