@@ -19,16 +19,16 @@
       <button class="btn-logout" id="btnLogout"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
     </div>
 
+    <!-- Pestañas -->
     <div class="mode-switch">
       <button id="btnTabInv" class="btn-tab active"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
-      <button id="btnTabMoves" class="btn-tab"><i class="fa-solid fa-right-left"></i> Movimientos</button>
+      <button id="btnTabMoves" class="btn-tab"><i class="fa-solid fa-hand-holding"></i> Movimientos</button>
       <button id="btnTabTrash" class="btn-tab"><i class="fa-solid fa-trash-can"></i> Papelera</button>
     </div>
 
-    <!-- PANEL 1: INVENTARIO Y CARGA MASIVA -->
+    <!-- PANEL 1: INVENTARIO -->
     <section id="panelInv" class="panel active">
       
-      <!-- Herramientas de Administrador (Solo visible para ADMIN) -->
       <div id="adminTools" class="hidden" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
         <button class="btn btn-primary" id="btnNewSku" style="flex: 1; min-width: 200px;">
           <i class="fa-solid fa-plus"></i> Registrar Prenda Nueva
@@ -50,7 +50,15 @@
         <div class="table-responsive">
           <table id="tableInventory" class="data-table">
             <thead>
-              <tr><th>ID SKU</th><th>Tipo</th><th>Talla</th><th>Color</th><th>Ubicación</th><th>Stock</th><th class="hidden admin-col">Acciones</th></tr>
+              <tr>
+                <th>ID SKU</th>
+                <th>Tipo</th>
+                <th>Talla</th>
+                <th>Color</th>
+                <th>Ubicación</th>
+                <th>Stock</th>
+                <th class="hidden admin-col">Acciones</th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -64,10 +72,10 @@
         <h3><i class="fa-solid fa-hand-holding"></i> Registrar Entrega a Empleado</h3>
         <div class="form-grid">
           <div class="form-group">
-            <label>SKU / Prenda</label>
+            <label>Seleccionar Prenda (SKU)</label>
             <select id="moveSkuSelect"></select>
           </div>
-          <div class="form-group" style="max-width: 100px;">
+          <div class="form-group" style="max-width: 120px;">
             <label>Cantidad</label>
             <input type="number" id="moveQty" value="1" min="1">
           </div>
@@ -80,16 +88,16 @@
         </div>
 
         <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 20px; width: 100%; max-width: 250px;">
-          <i class="fa-solid fa-floppy-disk"></i> Entregar Prenda
+          <i class="fa-solid fa-check"></i> Entregar y Descontar
         </button>
       </div>
 
       <div class="card">
-        <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial General</h3>
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Entregas</h3>
         <div class="table-responsive">
           <table id="tableMoves" class="data-table">
             <thead>
-              <tr><th>ID Mov.</th><th>Fecha</th><th>Tipo</th><th>SKU</th><th>Cant.</th><th>DNI</th><th>Empleado</th><th>Admin</th><th>Acción</th></tr>
+              <tr><th>ID Mov.</th><th>Fecha</th><th>SKU</th><th>Cant.</th><th>DNI</th><th>Empleado</th><th>Admin</th><th>Acción</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -101,11 +109,11 @@
     <section id="panelTrash" class="panel hidden">
       <div class="card">
         <h3><i class="fa-solid fa-trash-can"></i> Movimientos Anulados</h3>
-        <p style="color:var(--text-gray); font-size:0.9rem; margin-bottom:15px;">Recupera entregas anuladas por error.</p>
+        <p style="color:var(--text-gray); font-size:0.9rem; margin-bottom:15px;">Si anulaste una entrega por error, puedes restaurarla aquí. El stock se ajustará automáticamente.</p>
         <div class="table-responsive">
           <table id="tableTrash" class="data-table">
             <thead>
-              <tr><th>ID Mov.</th><th>Fecha</th><th>Tipo</th><th>SKU</th><th>Cant.</th><th>Empleado</th><th>Acción</th></tr>
+              <tr><th>ID Mov.</th><th>Fecha</th><th>SKU</th><th>Cant.</th><th>Empleado</th><th>Acción</th></tr>
             </thead>
             <tbody></tbody>
           </table>

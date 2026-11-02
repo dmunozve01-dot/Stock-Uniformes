@@ -3,16 +3,19 @@ class AppController {
     this.currentUser = JSON.parse(sessionStorage.getItem('sw_user')) || JSON.parse(localStorage.getItem('sw_user'));
     this.inventory = [];
     this.moves = [];
-    this.editingSku = null; // Para saber si estamos creando o editando
+    this.editingSku = null; 
   }
 
   async init() {
+    // Verificar si hay sesión activa
     if (!this.currentUser) return window.location.replace('index.html');
+    
+    // Cargar datos del usuario en la cabecera (función de auth.js)
     checkSessionAndLoadUI();
 
+    // Si es ADMIN, mostrar herramientas extra
     if (this.currentUser.role === 'ADMIN') {
       document.getElementById('adminTools').classList.remove('hidden');
-      // Mostrar columna de acciones en la tabla
       document.querySelectorAll('.admin-col').forEach(el => el.classList.remove('hidden'));
     }
 
@@ -21,10 +24,12 @@ class AppController {
   }
 
   async loadData() {
+    // 1. Cargar Inventario
     this.inventory = await apiService.getInventory();
     this.renderInventory();
     this.populateSkuSelect();
 
+    // 2. Cargar Movimientos (Entregas y Papelera)
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
@@ -34,7 +39,7 @@ class AppController {
     const tbody = document.querySelector('#tableInventory tbody');
     tbody.innerHTML = '';
     
-    // Lógica de búsqueda
+    // Filtro de búsqueda
     let filtered = this.inventory;
     if (filterText) {
       const text = filterText.toLowerCase();
@@ -52,10 +57,14 @@ class AppController {
     }
 
     filtered.forEach(item => {
+      // Botones de acción solo para admin
       const adminActions = this.currentUser.role === 'ADMIN' ? `
-        <td class="admin-col">
-          <button class="btn-restore" onclick="app.openEditModal('${item.ID_SKU}')" style="background:#e0f2fe; color:#0284c7;" title="Editar">
+        <td class="admin-col" style="display: flex; gap: 5px;">
+          <button class="btn-restore" onclick="app.openEditModal('${item.ID_SKU}')" style="background:#e0f2fe; color:#0284c7; padding: 6px 10px;" title="Editar">
             <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="btn-delete" onclick="app.deleteSku('${item.ID_SKU}')" title="Eliminar prenda" style="padding: 6px 10px;">
+            <i class="fa-solid fa-trash"></i>
           </button>
         </td>
       ` : '';
@@ -66,7 +75,7 @@ class AppController {
           <td>${item.Tipo}</td>
           <td>${item.Talla}</td>
           <td>${item.Color}</td>
-          <td>${item.Ubicacion}</td>
+          <td>${item.Ubicacion || 'N/A'}</td>
           <td><b>${item.Stock_Actual}</b></td>
           ${adminActions}
         </tr>
@@ -78,7 +87,10 @@ class AppController {
     const select = document.getElementById('moveSkuSelect');
     select.innerHTML = '<option value="">Seleccione SKU...</option>';
     this.inventory.forEach(item => {
-      select.innerHTML += `<option value="${item.ID_SKU}">${item.ID_SKU} - ${item.Tipo} ${item.Talla} (Stock: ${item.Stock_Actual})</option>`;
+      // Solo mostrar las prendas que tengan stock
+      if (Number(item.Stock_Actual) > 0) {
+        select.innerHTML += `<option value="${item.ID_SKU}">${item.ID_SKU} - ${item.Tipo} ${item.Talla} (Stock: ${item.Stock_Actual})</option>`;
+      }
     });
   }
 
@@ -88,27 +100,24 @@ class AppController {
     const activos = this.moves.filter(m => m.Estado === 'ACTIVO');
     
     if (activos.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No hay entregas registradas.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay entregas registradas.</td></tr>';
       return;
     }
 
     activos.forEach(m => {
       const fecha = new Date(m.Fecha).toLocaleString('es-PE');
-      const color = m.Tipo === 'ENTREGA' ? 'var(--anc-pink)' : 'var(--success)';
-      const signo = m.Tipo === 'ENTREGA' ? '-' : '+';
       
       tbody.innerHTML += `
         <tr>
           <td style="font-size:0.8rem; font-weight:bold;">${m.ID_Movimiento}</td>
           <td style="font-size:0.8rem; color:var(--text-gray);">${fecha}</td>
-          <td style="color:${color}; font-weight:bold;">${m.Tipo}</td>
           <td>${m.ID_SKU}</td>
-          <td><b style="color:${color};">${signo}${m.Cantidad}</b></td>
+          <td><b style="color:var(--anc-pink);">-${m.Cantidad}</b></td>
           <td>${m.DNI}</td>
           <td>${m.Nombre} ${m.Apellido}</td>
           <td>${m.Admin}</td>
           <td>
-            <button class="btn-delete" onclick="app.deleteMove('${m.ID_Movimiento}')" title="Anular">
+            <button class="btn-delete" onclick="app.deleteMove('${m.ID_Movimiento}')" title="Anular entrega" style="padding: 6px 10px;">
               <i class="fa-solid fa-ban"></i>
             </button>
           </td>
@@ -123,7 +132,7 @@ class AppController {
     const anulados = this.moves.filter(m => m.Estado === 'ANULADO');
     
     if (anulados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">La papelera está vacía.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">La papelera está vacía.</td></tr>';
       return;
     }
 
@@ -133,12 +142,11 @@ class AppController {
         <tr>
           <td style="font-size:0.8rem; font-weight:bold;">${m.ID_Movimiento}</td>
           <td style="font-size:0.8rem; color:var(--text-gray);">${fecha}</td>
-          <td>${m.Tipo}</td>
           <td>${m.ID_SKU}</td>
           <td>${m.Cantidad}</td>
           <td>${m.Nombre} ${m.Apellido}</td>
           <td>
-            <button class="btn-restore" onclick="app.restoreMove('${m.ID_Movimiento}')" title="Restaurar">
+            <button class="btn-restore" onclick="app.restoreMove('${m.ID_Movimiento}')" title="Restaurar entrega">
               <i class="fa-solid fa-rotate-left"></i> Restaurar
             </button>
           </td>
@@ -148,27 +156,27 @@ class AppController {
   }
 
   setupListeners() {
-    // Tabs
+    // 1. Cambio de pestañas (Tabs)
     document.getElementById('btnTabInv').addEventListener('click', () => this.switchTab('panelInv', 'btnTabInv'));
     document.getElementById('btnTabMoves').addEventListener('click', () => this.switchTab('panelMoves', 'btnTabMoves'));
     document.getElementById('btnTabTrash').addEventListener('click', () => this.switchTab('panelTrash', 'btnTabTrash'));
 
-    // Buscador en vivo
+    // 2. Buscador en vivo
     document.getElementById('searchInput').addEventListener('input', (e) => {
       this.renderInventory(e.target.value);
     });
 
-    // Movimientos (Entregas)
+    // 3. Botón de entregar
     document.getElementById('btnSaveMove').addEventListener('click', () => this.saveMove());
 
-    // Crear/Editar SKU
+    // 4. Modales de Crear/Editar SKU
     document.getElementById('btnNewSku').addEventListener('click', () => this.openCreateModal());
     document.getElementById('btnCancelSku').addEventListener('click', () => {
       document.getElementById('modalSku').classList.add('hidden');
     });
     document.getElementById('btnSaveSku').addEventListener('click', () => this.saveSku());
 
-    // Excel
+    // 5. Carga Masiva (Excel)
     document.getElementById('btnDownloadTemplate').addEventListener('click', () => this.downloadTemplate());
     document.getElementById('btnUploadExcel').addEventListener('click', () => {
       document.getElementById('excelFileInput').click();
@@ -177,14 +185,26 @@ class AppController {
   }
 
   switchTab(panelId, btnId) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+    // Ocultar todos los paneles y quitarles el active
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.add('hidden');
+      p.classList.remove('active');
+    });
+    
+    // Quitar el active a todos los botones
     document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById(panelId).classList.remove('hidden');
+    
+    // Mostrar el panel seleccionado
+    const panel = document.getElementById(panelId);
+    panel.classList.remove('hidden');
+    panel.classList.add('active');
+    
+    // Poner active al botón clickeado
     document.getElementById(btnId).classList.add('active');
   }
 
   // ==========================================
-  // CREAR Y EDITAR SKU
+  // CRUD DE INVENTARIO (Crear, Editar, Eliminar)
   // ==========================================
   openCreateModal() {
     this.editingSku = null;
@@ -231,14 +251,13 @@ class AppController {
 
     const btn = document.getElementById('btnSaveSku');
     btn.disabled = true;
+    btn.innerHTML = 'Guardando...';
 
     let success = false;
     if (this.editingSku) {
-      // Es edición
       item.id_sku = this.editingSku;
       success = await apiService.updateInventory(item);
     } else {
-      // Es creación
       success = await apiService.createInventory(item);
     }
 
@@ -250,10 +269,29 @@ class AppController {
       alert("❌ Error al guardar.");
     }
     btn.disabled = false;
+    btn.innerHTML = 'Guardar';
+  }
+
+  async deleteSku(skuId) {
+    if (!confirm(`¿Estás seguro de eliminar la prenda ${skuId}? Se pondrá su stock en 0.`)) return;
+    
+    const item = this.inventory.find(i => i.ID_SKU === skuId);
+    if (!item) return;
+
+    // Para "eliminar" una prenda sin borrar la fila (y romper el historial), le ponemos stock 0
+    item.stock = 0;
+    const success = await apiService.updateInventory(item);
+    
+    if (success) {
+      alert("✅ Prenda eliminada del stock (Stock = 0).");
+      await this.loadData();
+    } else {
+      alert("❌ Error al eliminar.");
+    }
   }
 
   // ==========================================
-  // LÓGICA DE ENTREGAS
+  // ENTREGAS (MOVIMIENTOS)
   // ==========================================
   async saveMove() {
     const sku = document.getElementById('moveSkuSelect').value;
@@ -262,8 +300,9 @@ class AppController {
     if (!sku || cantidad < 1) return alert("Seleccione un SKU y cantidad válida.");
 
     const moveData = {
-      tipo: 'ENTREGA', // Forzado a entrega por la UI
-      id_sku: sku, cantidad,
+      tipo: 'ENTREGA',
+      id_sku: sku, 
+      cantidad,
       dni: document.getElementById('moveDni').value,
       nombre: document.getElementById('moveName').value,
       apellido: document.getElementById('moveLastname').value,
@@ -275,7 +314,8 @@ class AppController {
     }
 
     const btn = document.getElementById('btnSaveMove');
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
 
     const success = await apiService.registerMove(moveData);
     
@@ -285,30 +325,33 @@ class AppController {
       document.getElementById('moveDni').value = '';
       document.getElementById('moveName').value = '';
       document.getElementById('moveLastname').value = '';
+      
       setTimeout(async () => { 
         await this.loadData(); 
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Entregar Prenda'; 
+        btn.disabled = false; 
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Entregar y Descontar'; 
       }, 1500);
     } else {
       alert("❌ Error al registrar.");
-      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Entregar Prenda';
+      btn.disabled = false; 
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Entregar y Descontar';
     }
   }
 
   async deleteMove(id) {
-    if (!confirm("¿Seguro que deseas anular esta entrega? El stock regresará.")) return;
+    if (!confirm("¿Anular esta entrega? El stock regresará al inventario.")) return;
     const success = await apiService.toggleMoveStatus(id, 'ANULADO');
     if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
   async restoreMove(id) {
-    if (!confirm("¿Restaurar esta entrega? El stock se descontará nuevamente.")) return;
+    if (!confirm("¿Restaurar esta entrega? El stock se volverá a descontar.")) return;
     const success = await apiService.toggleMoveStatus(id, 'ACTIVO');
     if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
   // ==========================================
-  // CARGA MASIVA POR EXCEL (SUMA STOCK)
+  // CARGA MASIVA (EXCEL)
   // ==========================================
   downloadTemplate() {
     const data = [
@@ -316,7 +359,6 @@ class AppController {
       ["Camisa", "M", "Azul", "Mass-09-01-02-01", 10],
       ["Pantalon", "32", "Negro", "Mass-09-01-02-02", 5]
     ];
-
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventario");
@@ -373,6 +415,7 @@ class AppController {
   }
 }
 
+// Iniciar la app
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('tableInventory')) {
