@@ -3,18 +3,22 @@ class AppController {
     this.currentUser = JSON.parse(sessionStorage.getItem('sw_user')) || JSON.parse(localStorage.getItem('sw_user'));
     this.inventory = [];
     this.moves = [];
-    this.users = []; // Nueva lista para usuarios
+    this.users = []; 
     this.editingSku = null; 
   }
 
   async init() {
+    // Verificar sesión
     if (!this.currentUser) return window.location.replace('index.html');
+    
+    // Cargar datos del usuario en la cabecera
     checkSessionAndLoadUI();
 
+    // Configurar vista de Administrador
     if (this.currentUser.role === 'ADMIN') {
       document.getElementById('adminTools').classList.remove('hidden');
       document.querySelectorAll('.admin-col').forEach(el => el.classList.remove('hidden'));
-      // El botón de usuarios se muestra gracias a auth.js
+      // La pestaña de usuarios se muestra automáticamente en auth.js
     }
 
     this.setupListeners();
@@ -22,10 +26,12 @@ class AppController {
   }
 
   async loadData() {
+    // 1. Cargar Inventario
     this.inventory = await apiService.getInventory();
     this.renderInventory();
     this.populateSkuSelect();
 
+    // 2. Cargar Movimientos
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
@@ -35,8 +41,10 @@ class AppController {
     const tbody = document.querySelector('#tableInventory tbody');
     tbody.innerHTML = '';
     
+    // Solo mostrar prendas que NO estén eliminadas
     let filtered = this.inventory.filter(item => item.Estado !== 'ELIMINADO');
 
+    // Aplicar filtro de búsqueda si hay texto
     if (filterText) {
       const text = filterText.toLowerCase();
       filtered = filtered.filter(item => 
@@ -55,10 +63,10 @@ class AppController {
     filtered.forEach(item => {
       const adminActions = this.currentUser.role === 'ADMIN' ? `
         <td class="admin-col" style="display: flex; gap: 5px;">
-          <button class="btn-restore" onclick="app.openEditModal('${item.ID_SKU}')" style="background:#e0f2fe; color:#0284c7; padding: 6px 10px;" title="Editar">
+          <button class="btn-restore" onclick="app.openEditModal('${item.ID_SKU}')" title="Editar">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button class="btn-delete" onclick="app.deleteSku('${item.ID_SKU}')" title="Eliminar prenda" style="padding: 6px 10px;">
+          <button class="btn-delete" onclick="app.deleteSku('${item.ID_SKU}')" title="Eliminar prenda">
             <i class="fa-solid fa-trash"></i>
           </button>
         </td>
@@ -81,6 +89,7 @@ class AppController {
   populateSkuSelect() {
     const select = document.getElementById('moveSkuSelect');
     select.innerHTML = '<option value="">Seleccione SKU...</option>';
+    // Solo mostrar prendas activas con stock mayor a 0
     this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0).forEach(item => {
       select.innerHTML += `<option value="${item.ID_SKU}">${item.ID_SKU} - ${item.Tipo} ${item.Talla} (Stock: ${item.Stock_Actual})</option>`;
     });
@@ -89,6 +98,7 @@ class AppController {
   renderMoves() {
     const tbody = document.querySelector('#tableMoves tbody');
     tbody.innerHTML = '';
+    // Solo mostrar entregas ACTIVAS
     const activos = this.moves.filter(m => m.Estado === 'ACTIVO');
     
     if (activos.length === 0) {
@@ -103,12 +113,12 @@ class AppController {
           <td style="font-size:0.8rem; font-weight:bold;">${m.ID_Movimiento}</td>
           <td style="font-size:0.8rem; color:var(--text-gray);">${fecha}</td>
           <td>${m.ID_SKU}</td>
-          <td><b style="color:var(--anc-pink);">-${m.Cantidad}</b></td>
+          <td><b style="color:var(--danger);">-${m.Cantidad}</b></td>
           <td>${m.DNI}</td>
           <td>${m.Nombre} ${m.Apellido}</td>
           <td>${m.Admin}</td>
           <td>
-            <button class="btn-delete" onclick="app.deleteMove('${m.ID_Movimiento}')" title="Anular entrega" style="padding: 6px 10px;">
+            <button class="btn-delete" onclick="app.deleteMove('${m.ID_Movimiento}')" title="Anular entrega">
               <i class="fa-solid fa-ban"></i>
             </button>
           </td>
@@ -129,11 +139,12 @@ class AppController {
       return;
     }
 
+    // 1. Renderizar Entregas Anuladas
     movesAnulados.forEach(m => {
       const fecha = new Date(m.Fecha).toLocaleString('es-PE');
       tbody.innerHTML += `
         <tr>
-          <td style="font-size:0.8rem; font-weight:bold; color:var(--anc-pink);">MOV: ${m.ID_Movimiento}</td>
+          <td style="font-size:0.8rem; font-weight:bold; color:var(--danger);">MOV: ${m.ID_Movimiento}</td>
           <td style="font-size:0.8rem; color:var(--text-gray);">${fecha}</td>
           <td>Entrega de: ${m.ID_SKU}</td>
           <td>${m.Cantidad}</td>
@@ -147,9 +158,10 @@ class AppController {
       `;
     });
 
+    // 2. Renderizar Prendas Eliminadas
     prendasEliminadas.forEach(item => {
       tbody.innerHTML += `
-        <tr style="background:#fff1f2;">
+        <tr style="background:rgba(255, 0, 60, 0.05);">
           <td style="font-size:0.8rem; font-weight:bold; color:var(--danger);">SKU: ${item.ID_SKU}</td>
           <td style="font-size:0.8rem; color:var(--text-gray);">Prenda eliminada</td>
           <td>${item.Tipo} ${item.Talla} ${item.Color}</td>
@@ -172,20 +184,25 @@ class AppController {
     this.users = await apiService.getUsers();
     tbody.innerHTML = '';
 
+    if (this.users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay usuarios registrados.</td></tr>';
+      return;
+    }
+
     this.users.forEach(u => {
       const isBlocked = String(u.Estado).toUpperCase() === 'BLOQUEADO';
-      const badgeColor = isBlocked ? 'var(--danger)' : 'var(--success)';
+      const badgeColor = isBlocked ? 'var(--danger)' : 'var(--neon-green)';
       const btnText = isBlocked ? 'Desbloquear' : 'Bloquear';
-      const btnColor = isBlocked ? '#dc2626' : '#64748b';
+      const btnClass = isBlocked ? 'btn-restore' : 'btn-delete'; // Verde para desbloquear, rojo para bloquear
 
       tbody.innerHTML += `
         <tr>
           <td><b>${u.Email}</b></td>
           <td>${u.Nombre}</td>
-          <td><span style="background:#e2e8f0; padding:2px 8px; border-radius:4px; font-size:0.75rem;">${u.Rol}</span></td>
+          <td><span style="background:var(--bg-hover); border:1px solid var(--border-color); padding:4px 10px; border-radius:20px; font-size:0.75rem;">${u.Rol}</span></td>
           <td style="color:${badgeColor}; font-weight:bold;">${u.Estado || 'ACTIVO'}</td>
           <td>
-            <button class="btn" onclick="app.toggleUser('${u.Email}', '${isBlocked ? 'ACTIVO' : 'BLOQUEADO'}')" style="background:${btnColor}; color:white; padding: 6px 12px; font-size:0.8rem;">
+            <button class="${btnClass}" onclick="app.toggleUser('${u.Email}', '${isBlocked ? 'ACTIVO' : 'BLOQUEADO'}')">
               ${btnText}
             </button>
           </td>
@@ -208,27 +225,36 @@ class AppController {
   }
 
   setupListeners() {
+    // Tabs
     document.getElementById('btnTabInv').addEventListener('click', () => this.switchTab('panelInv', 'btnTabInv'));
     document.getElementById('btnTabMoves').addEventListener('click', () => this.switchTab('panelMoves', 'btnTabMoves'));
     document.getElementById('btnTabTrash').addEventListener('click', () => this.switchTab('panelTrash', 'btnTabTrash'));
-    document.getElementById('btnTabUsers').addEventListener('click', () => {
-      this.switchTab('panelUsers', 'btnTabUsers');
-      this.loadUsers();
-    });
+    
+    // Botón de usuarios (solo si existe en el DOM)
+    const btnTabUsers = document.getElementById('btnTabUsers');
+    if(btnTabUsers) {
+      btnTabUsers.addEventListener('click', () => {
+        this.switchTab('panelUsers', 'btnTabUsers');
+        this.loadUsers();
+      });
+    }
 
+    // Buscador
     document.getElementById('searchInput').addEventListener('input', (e) => {
       this.renderInventory(e.target.value);
     });
 
+    // Movimientos
     document.getElementById('btnSaveMove').addEventListener('click', () => this.saveMove());
+
+    // Modales SKU
     document.getElementById('btnNewSku').addEventListener('click', () => this.openCreateModal());
     document.getElementById('btnCancelSku').addEventListener('click', () => {
-      const modal = document.getElementById('modalSku');
-      modal.classList.add('hidden');
-      modal.style.display = 'none';
+      document.getElementById('modalSku').classList.add('hidden');
     });
     document.getElementById('btnSaveSku').addEventListener('click', () => this.saveSku());
-    
+
+    // Excel
     document.getElementById('btnDownloadTemplate').addEventListener('click', () => this.downloadTemplate());
     document.getElementById('btnUploadExcel').addEventListener('click', () => {
       document.getElementById('excelFileInput').click();
@@ -262,26 +288,28 @@ class AppController {
     document.getElementById('skuColor').value = '';
     document.getElementById('skuLocation').value = '';
     document.getElementById('skuStock').value = '0';
-    const modal = document.getElementById('modalSku');
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+    
+    // Solo quitamos el hidden, el CSS lo centrará solo
+    document.getElementById('modalSku').classList.remove('hidden');
   }
 
   openEditModal(skuId) {
     const item = this.inventory.find(i => i.ID_SKU === skuId);
     if (!item) return;
+    
     this.editingSku = skuId;
     document.getElementById('modalSkuTitle').innerText = "Editar Prenda";
     document.getElementById('modalSkuId').style.display = 'block';
     document.getElementById('modalSkuId').innerText = `ID: ${item.ID_SKU}`;
+    
     document.getElementById('skuType').value = item.Tipo;
     document.getElementById('skuSize').value = item.Talla;
     document.getElementById('skuColor').value = item.Color;
     document.getElementById('skuLocation').value = item.Ubicacion;
     document.getElementById('skuStock').value = item.Stock_Actual;
-    const modal = document.getElementById('modalSku');
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+    
+    // Solo quitamos el hidden, el CSS lo centrará solo
+    document.getElementById('modalSku').classList.remove('hidden');
   }
 
   async saveSku() {
@@ -292,10 +320,13 @@ class AppController {
       ubicacion: document.getElementById('skuLocation').value,
       stock: parseInt(document.getElementById('skuStock').value) || 0
     };
+    
     if (!item.tipo) return alert("El Tipo de prenda es obligatorio.");
+    
     const btn = document.getElementById('btnSaveSku');
     btn.disabled = true;
-    btn.innerHTML = 'Guardando...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+    
     let success = false;
     if (this.editingSku) {
       item.id_sku = this.editingSku;
@@ -303,15 +334,15 @@ class AppController {
     } else {
       success = await apiService.createInventory(item);
     }
+    
     if (success) {
       alert(this.editingSku ? "✅ Prenda actualizada." : "✅ Prenda registrada.");
-      const modal = document.getElementById('modalSku');
-      modal.classList.add('hidden');
-      modal.style.display = 'none';
+      document.getElementById('modalSku').classList.add('hidden');
       await this.loadData();
     } else {
       alert("❌ Error al guardar.");
     }
+    
     btn.disabled = false;
     btn.innerHTML = 'Guardar';
   }
@@ -329,10 +360,13 @@ class AppController {
 
   async restoreSku(skuId) {
     if (!confirm(`¿Restaurar la prenda ${skuId} al inventario activo?`)) return;
+    
     const item = this.inventory.find(i => i.ID_SKU === skuId);
     if (!item) return;
+    
     item.estado = 'ACTIVO';
     const success = await apiService.updateInventory(item);
+    
     if (success) {
       alert("✅ Prenda restaurada.");
       await this.loadData();
@@ -345,6 +379,7 @@ class AppController {
     const sku = document.getElementById('moveSkuSelect').value;
     const cantidad = parseInt(document.getElementById('moveQty').value);
     if (!sku || cantidad < 1) return alert("Seleccione un SKU y cantidad válida.");
+    
     const moveData = {
       tipo: 'ENTREGA',
       id_sku: sku, 
@@ -354,17 +389,22 @@ class AppController {
       apellido: document.getElementById('moveLastname').value,
       admin: this.currentUser.name
     };
+    
     if (!moveData.dni || !moveData.nombre) return alert("El DNI y Nombre son obligatorios.");
+    
     const btn = document.getElementById('btnSaveMove');
     btn.disabled = true; 
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+    
     const success = await apiService.registerMove(moveData);
+    
     if (success) {
       alert("✅ Entrega registrada.");
       document.getElementById('moveQty').value = '1';
       document.getElementById('moveDni').value = '';
       document.getElementById('moveName').value = '';
       document.getElementById('moveLastname').value = '';
+      
       setTimeout(async () => { 
         await this.loadData(); 
         btn.disabled = false; 
@@ -378,20 +418,20 @@ class AppController {
   }
 
   async deleteMove(id) {
-    if (!confirm("¿Anular esta entrega?")) return;
+    if (!confirm("¿Anular esta entrega? El stock regresará al inventario.")) return;
     const success = await apiService.toggleMoveStatus(id, 'ANULADO');
     if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
   async restoreMove(id) {
-    if (!confirm("¿Restaurar esta entrega?")) return;
+    if (!confirm("¿Restaurar esta entrega? El stock se volverá a descontar.")) return;
     const success = await apiService.toggleMoveStatus(id, 'ACTIVO');
     if (success) setTimeout(async () => await this.loadData(), 1500);
   }
 
   downloadTemplate() {
     const data = [
-      ["Tipo", "Talla", "Color", "Ubicacion", "Stock"],
+      ["Tipo", "Talla", "Color", "Ubicacion", "Stock"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -402,10 +442,12 @@ class AppController {
   async handleExcelUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+    
     const btn = document.getElementById('btnUploadExcel');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
     btn.disabled = true;
+    
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -413,7 +455,9 @@ class AppController {
         const workbook = XLSX.read(data, { type: 'array' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
         if (jsonData.length === 0) throw new Error("El archivo está vacío.");
+        
         const itemsToUpload = jsonData.filter(row => row.Tipo).map(row => ({
           tipo: row.Tipo || '-',
           talla: row.Talla || '-',
@@ -421,8 +465,11 @@ class AppController {
           ubicacion: row.Ubicacion || '-',
           stock: parseInt(row.Stock) || 0
         }));
+        
         if (itemsToUpload.length === 0) throw new Error("No se encontraron datos válidos.");
+        
         const res = await apiService.bulkCreateInventory(itemsToUpload);
+        
         if (res.success) {
           alert(`✅ ${res.msg}`);
           await this.loadData();
@@ -442,6 +489,7 @@ class AppController {
   }
 }
 
+// Iniciar la app
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('tableInventory')) {
