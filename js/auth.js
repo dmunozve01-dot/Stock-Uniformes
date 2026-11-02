@@ -6,23 +6,22 @@ window.handleCredentialResponse = function(response) {
 
 function checkSessionAndLoadUI() {
   const user = JSON.parse(sessionStorage.getItem('sw_user')) || JSON.parse(localStorage.getItem('sw_user'));
-  if (!user) { window.location.href = 'index.html'; return; }
+  if (!user) { window.location.replace('index.html'); return; }
 
   const nameEl = document.getElementById('userName');
   const emailEl = document.getElementById('userEmail');
   const avatarEl = document.getElementById('userAvatar');
 
-  if (nameEl) nameEl.innerText = user.name;
-  if (emailEl) emailEl.innerText = user.email;
+  if (nameEl) nameEl.innerText = user.name || 'Usuario';
+  if (emailEl) emailEl.innerText = user.email || '';
   if (avatarEl && user.picture) avatarEl.src = user.picture;
 
-  // Configuración segura del botón Salir
+  // Botón Salir
   const btnLogout = document.getElementById('btnLogout');
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
       sessionStorage.removeItem('sw_user');
       localStorage.removeItem('sw_user');
-      // El replace borra la página actual del historial (no se puede volver atrás)
       window.location.replace('index.html'); 
     });
   }
@@ -36,18 +35,19 @@ function checkSessionAndLoadUI() {
 
 async function saveUserSession(userData) {
   const remember = document.getElementById('rememberMe')?.checked || false;
-  let role = "USER";
   
   if (typeof apiService !== 'undefined') {
-    role = await apiService.getUserRole(userData.email);
-    userData.role = role;
+    const res = await apiService.getUserRole(userData.email);
+    userData.role = res.role;
+    if (res.name && res.name !== 'Usuario Desconocido') {
+      userData.name = res.name;
+    }
     apiService.syncUser(userData); 
   }
 
   if (remember) localStorage.setItem('sw_user', JSON.stringify(userData));
   else sessionStorage.setItem('sw_user', JSON.stringify(userData));
 
-  // Usamos replace para que no quede el login en el historial
   window.location.replace('app.html');
 }
 
@@ -65,7 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnDemo) {
     btnDemo.addEventListener('click', (e) => {
       e.preventDefault();
-      saveUserSession({ name: "Operario Demo", email: "operario@almacen.com", picture: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png" });
+      saveUserSession({ 
+        name: "Operario Demo", 
+        email: "operario@almacen.com", 
+        picture: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
+      });
     });
   }
 });

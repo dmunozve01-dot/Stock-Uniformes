@@ -1,32 +1,12 @@
 const APP_CONFIG = {
-  // Deja esto vacío por ahora, usaremos la URL directa para probar
-  ENCRYPTED_API_URL: "", 
-  
-  // URL directa de tu Apps Script para probar (luego la encriptamos)
-  DIRECT_API_URL: "https://script.google.com/macros/s/AKfycbzOY4dv23XTrj2Hsn4WX1PYZjZz1hpCmWUOB3Fj2wHPvBveF3zkSCC5vS1xW2a4-zGr/exec",
-  
-  SECRET_PASS: "sw_trujillo_2026_key",
-
-  // Coordenadas del centro del almacén
-  STAGING_LOCATION: {
-    lat: -8.141639,
-    lng: -79.014833,
-    zoom: 20 // Zoom más cercano para ver el interior
-  },
-
-  // Imagen del plano y sus límites (Coordenadas de las esquinas)
-  OVERLAY_IMAGE_URL: "../assets/plano_almacen.jpeg",
-  OVERLAY_BOUNDS: [
-    [-8.141900, -79.015150], // Esquina superior izquierda del techo
-    [-8.141380, -79.014500]  // Esquina inferior derecha del techo
-  ],
-
-  MAP_TILE_PROVIDER: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  // ⚠️ AQUÍ PEGA LA URL QUE TE DA GOOGLE APPS SCRIPT AL IMPLEMENTAR (Termina en /exec)
+  DIRECT_API_URL: "https://script.google.com/macros/s/AKfycbyuSkv4Nb5ewFYEV5MBkdQx7Qj5-PF41XRl08RT-cLAX4nswFDiwIXHU5RAXachfT2z/exec",
 
   async getApiUrl() {
-    if (this.DIRECT_API_URL && this.DIRECT_API_URL.includes("http")) {
+    if (this.DIRECT_API_URL && this.DIRECT_API_URL.includes("http") && !this.DIRECT_API_URL.includes("TU_URL_AQUI")) {
       return this.DIRECT_API_URL;
     }
+    console.warn("⚠️ No se ha configurado la URL del API en config.js");
     return null;
   }
 };

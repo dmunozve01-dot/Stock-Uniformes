@@ -1,224 +1,155 @@
 class AppController {
   constructor() {
-    this.storeRepo = new StoreRepository();
-    this.gpsService = new GPSService();
-    this.map = null;
-    this.routeLine = null;
-    this.userMarker = null;
-    this.tempMarker = null;
-    this.slotMarkers = [];
-    this.waypoints = [];
-    this.capturedCoords = null; 
+    this.inventory = [];
+    this.history = [];
+    this.currentUser = JSON.parse(sessionStorage.getItem('sw_user')) || JSON.parse(localStorage.getItem('sw_user'));
   }
 
   async init() {
-    const user = JSON.parse(sessionStorage.getItem('sw_user')) || JSON.parse(localStorage.getItem('sw_user'));
-    if (!user) { window.location.replace('index.html'); return; }
-
+    if (!this.currentUser) return window.location.replace('index.html');
+    
     checkSessionAndLoadUI();
     this.setupListeners();
-    this.initMap();
     
-    // Iniciar GPS con el nuevo filtro de estabilidad
-    this.gpsService.startTracking(pos => this.updateGPS(pos), err => console.warn("GPS offline"));
+    await this.loadData();
+  }
+
+  async loadData() {
+    // Cargar Inventario
+    this.inventory = await apiService.getInventory();
+    this.renderInventory();
+
+    // Si es Admin, cargar Historial y selector
+    if (this.currentUser.role === 'ADMIN') {
+      this.history = await apiService.getDeliveryHistory();
+      this.renderHistory();
+      this.populateSelect();
+    }
+  }
+
+  renderInventory() {
+    const tbody = document.querySelector('#tableInventoryUser tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
     
-    // Cargar Slots guardados
-    this.waypoints = await this.storeRepo.loadFromCloud();
-    this.drawSlots();
+    if (this.inventory.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No hay uniformes registrados.</td></tr>`;
+      return;
+    }
+
+    this.inventory.forEach(item => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.Tipo || '-'}</td>
+          <td>${item.Talla || '-'}</td>
+          <td>${item.Color || '-'}</td>
+          <td><b>${item.Stock_Actual || 0}</b></td>
+          <td>${item.Ubicacion || 'N/A'}</td>
+        </tr>
+      `;
+    });
+  }
+
+  renderHistory() {
+    const tbody = document.querySelector('#tableHistory tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (this.history.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Sin entregas registradas.</td></tr>`;
+      return;
+    }
+
+    this.history
+      .sort((a,b) => new Date(b.Fecha) - new Date(a.Fecha))
+      .forEach(h => {
+        const fecha = h.Fecha ? new Date(h.Fecha).toLocaleDateString('es-PE') : 'N/A';
+        tbody.innerHTML += `
+          <tr>
+            <td>${fecha}</td>
+            <td>${h.Email_Empleado || '-'}</td>
+            <td>ID: ${h.ID_Uniforme || '-'}</td>
+            <td>${h.Cantidad || 0}</td>
+            <td>${h.Entregado_Por || '-'}</td>
+          </tr>
+        `;
+      });
+  }
+
+  populateSelect() {
+    const select = document.getElementById('deliveryItemSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">Seleccione Uniforme...</option>';
+    
+    this.inventory.forEach(item => {
+      if (Number(item.Stock_Actual) > 0) {
+        select.innerHTML += `<option value="${item.ID}">${item.Tipo} Talla ${item.Talla} (Stock: ${item.Stock_Actual})</option>`;
+      }
+    });
   }
 
   setupListeners() {
-    document.getElementById('btnUser').addEventListener('click', () => this.switchMode('user'));
-    document.getElementById('btnAdmin').addEventListener('click', () => this.switchMode('admin'));
-    document.getElementById('btnCenterMap').addEventListener('click', () => this.centerMap());
-    document.getElementById('btnSearchRoute').addEventListener('click', () => this.traceRoute());
-    document.getElementById('btnClearRoute').addEventListener('click', () => this.clearRoute());
-    
-    // Botón de captura exacta
-    document.getElementById('btnCaptureGPS').addEventListener('click', () => this.captureCurrentGPS());
-    document.getElementById('btnSaveWaypoint').addEventListener('click', () => this.saveSlot());
-    
-    document.getElementById('searchInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.traceRoute();
-    });
+    const btnUser = document.getElementById('btnUser');
+    const btnAdmin = document.getElementById('btnAdmin');
+    const btnDeliver = document.getElementById('btnDeliverItem');
+
+    if (btnUser) btnUser.addEventListener('click', () => this.switchTab('user'));
+    if (btnAdmin) btnAdmin.addEventListener('click', () => this.switchTab('admin'));
+    if (btnDeliver) btnDeliver.addEventListener('click', () => this.processDelivery());
   }
 
-  initMap() {
-    const { lat, lng, zoom } = APP_CONFIG.STAGING_LOCATION;
-    this.map = L.map('map', { zoomControl: true }).setView([lat, lng], zoom);
-    L.tileLayer(APP_CONFIG.MAP_TILE_PROVIDER, { maxZoom: 21 }).addTo(this.map);
-    
-    // Plano del almacén
-    L.imageOverlay(APP_CONFIG.OVERLAY_IMAGE_URL, APP_CONFIG.OVERLAY_BOUNDS, { opacity: 0.9 }).addTo(this.map);
-
-    setTimeout(() => this.map.invalidateSize(), 300);
+  switchTab(tab) {
+    document.getElementById('btnUser').classList.toggle('active', tab === 'user');
+    document.getElementById('btnAdmin').classList.toggle('active', tab === 'admin');
+    document.getElementById('userPanel').classList.toggle('active', tab === 'user');
+    document.getElementById('adminPanel').classList.toggle('active', tab === 'admin');
   }
 
-  updateGPS(pos) {
-    document.getElementById('gpsStatusText').innerText = `GPS: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
-    
-    if (!this.userMarker) {
-      // Diseño de PIN CLAVADO (No flota, la punta toca la coordenada exacta)
-      const icon = L.divIcon({
-        className: 'user-icon',
-        html: `
-          <div style="position: relative; width: 24px; height: 24px;">
-            <!-- El pin azul -->
-            <div style="
-              width: 24px; 
-              height: 24px; 
-              background: #2563eb; 
-              border: 3px solid white; 
-              border-radius: 50% 50% 50% 0; 
-              transform: rotate(-45deg);
-              box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-              position: absolute;
-              top: 0;
-            "></div>
-            <!-- El centro blanco -->
-            <div style="
-              width: 8px; 
-              height: 8px; 
-              background: white; 
-              border-radius: 50%; 
-              position: absolute; 
-              top: 6px; 
-              left: 6px;
-            "></div>
-          </div>
-        `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 24] // La punta del pin (abajo) es la coordenada exacta
-      });
-      
-      this.userMarker = L.marker([pos.lat, pos.lng], { icon }).addTo(this.map).bindPopup("📍 Estás aquí");
-    } else {
-      // Actualización instantánea
-      this.userMarker.setLatLng([pos.lat, pos.lng]);
+  async processDelivery() {
+    const email = document.getElementById('deliveryUserEmail').value.trim();
+    const itemId = document.getElementById('deliveryItemSelect').value;
+    const qty = parseInt(document.getElementById('deliveryQty').value);
+
+    if (!email || !itemId || qty < 1) {
+      return alert("⚠️ Complete todos los campos correctamente.");
     }
-  }
 
-  async captureCurrentGPS() {
-    const btn = document.getElementById('btnCaptureGPS');
-    const coordsBox = document.getElementById('adminCoordsBox');
-    
-    // Bloqueamos el botón mientras captura
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Capturando... (No te muevas)';
+    const btn = document.getElementById('btnDeliverItem');
+    const originalText = btn.innerHTML;
     btn.disabled = true;
-    coordsBox.innerText = "Estabilizando señal GPS...";
-    coordsBox.style.color = "#f59e0b"; // Naranja
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
 
-    try {
-      // Llamada al promedio de 10 lecturas de alta precisión
-      const pos = await this.gpsService.captureHighAccuracyPoint();
-      this.capturedCoords = pos;
+    const deliveryData = {
+      fecha: new Date().toISOString(),
+      email_empleado: email,
+      id_uniforme: itemId,
+      cantidad: qty,
+      admin: this.currentUser.name || 'Admin'
+    };
 
-      coordsBox.innerText = `📍 Precisión Alta: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
-      coordsBox.style.color = "#16a34a"; // Verde
+    const success = await apiService.registerDelivery(deliveryData);
+
+    if (success) {
+      alert("✅ Entrega registrada. Actualizando stock...");
+      document.getElementById('deliveryUserEmail').value = '';
+      document.getElementById('deliveryQty').value = '1';
       
-      // Hacemos zoom al punto capturado
-      this.map.setView([pos.lat, pos.lng], 21);
-      
-      // Pintamos el pin rojo temporal donde se guardará
-      if (this.tempMarker) this.map.removeLayer(this.tempMarker);
-      this.tempMarker = L.marker([pos.lat, pos.lng], {
-        icon: L.divIcon({ className: 'temp-icon', html: `<div style="background:red; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow: 0 0 5px black;"></div>` })
-      }).addTo(this.map);
-
-    } catch (error) {
-      alert("⚠️ " + error.message);
-      coordsBox.innerText = "Error de captura. Intenta de nuevo.";
-      coordsBox.style.color = "#dc2626"; // Rojo
-    } finally {
-      // Restauramos el botón
-      btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> 1. Capturar Mi Ubicación';
+      // Esperamos un momento para que Google Sheets procese el POST
+      setTimeout(async () => {
+        await this.loadData(); 
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }, 1500);
+    } else {
+      alert("❌ Error al registrar la entrega.");
       btn.disabled = false;
-    }
-  }
-
-  saveSlot() {
-    const code = document.getElementById('adminCodeInput').value.trim().toUpperCase();
-    const zone = document.getElementById('adminZoneSelect').value;
-
-    if (!this.capturedCoords) return alert("⚠️ Primero debes hacer clic en 'Capturar Mi Ubicación'.");
-    if (!code) return alert("Escribe un código para el slot.");
-
-    // Guardar usando las coordenadas exactas capturadas
-    this.waypoints = this.storeRepo.saveOrUpdate({
-      code: code, 
-      name: `Slot ${code}`, 
-      zone: zone, 
-      lat: this.capturedCoords.lat, 
-      lng: this.capturedCoords.lng
-    });
-
-    this.drawSlots();
-    
-    // Limpiar formulario
-    document.getElementById('adminCodeInput').value = '';
-    document.getElementById('adminCoordsBox').innerText = 'Esperando captura...';
-    document.getElementById('adminCoordsBox').style.color = "#64748b";
-    this.capturedCoords = null; 
-    if (this.tempMarker) this.map.removeLayer(this.tempMarker);
-
-    alert(`✅ Slot ${code} guardado con éxito.`);
-  }
-
-  centerMap() {
-    const { lat, lng, zoom } = APP_CONFIG.STAGING_LOCATION;
-    this.map.setView([lat, lng], zoom);
-  }
-
-  switchMode(mode) {
-    document.getElementById('btnUser').classList.toggle('active', mode === 'user');
-    document.getElementById('btnAdmin').classList.toggle('active', mode === 'admin');
-    document.getElementById('userPanel').classList.toggle('active', mode === 'user');
-    document.getElementById('adminPanel').classList.toggle('active', mode === 'admin');
-    setTimeout(() => this.map.invalidateSize(), 200);
-  }
-
-  drawSlots() {
-    this.slotMarkers.forEach(m => this.map.removeLayer(m));
-    this.slotMarkers = [];
-
-    this.waypoints.forEach(wp => {
-      const marker = L.marker([wp.lat, wp.lng], {
-        icon: L.divIcon({ 
-          className: 'slot-icon', 
-          html: `<div style="background:#059669; color:white; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:12px; border:2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.5);">📍 ${wp.code}</div>` 
-        })
-      }).addTo(this.map);
-      this.slotMarkers.push(marker);
-    });
-  }
-
-  traceRoute() {
-    const query = document.getElementById('searchInput').value.trim().toUpperCase();
-    const target = this.waypoints.find(w => w.code === query);
-    if (!target) return alert("Slot no encontrado. Verifica el código.");
-
-    const start = this.gpsService.getCurrentPosition();
-    this.clearRoute();
-
-    // Línea punteada azul desde ti hasta la estantería
-    this.routeLine = L.polyline([[start.lat, start.lng], [target.lat, target.lng]], { 
-      color: '#2563eb', weight: 6, dashArray: '10, 10', lineCap: 'round' 
-    }).addTo(this.map);
-
-    this.map.fitBounds(this.routeLine.getBounds(), { padding: [50, 50] });
-    setTimeout(() => { this.map.setZoom(20); }, 1000);
-  }
-
-  clearRoute() {
-    if (this.routeLine) {
-      this.map.removeLayer(this.routeLine);
-      this.routeLine = null;
+      btn.innerHTML = originalText;
     }
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('map')) {
+  if (document.getElementById('tableInventoryUser')) {
     const app = new AppController();
     app.init();
   }

@@ -19,7 +19,7 @@
   <div class="login-card">
     <div class="brand-logo"><i class="fa-solid fa-warehouse"></i></div>
     <h2>SmartWarehouse</h2>
-    <p>Ingreso al Sistema</p>
+    <p>Control de Stock de Uniformes</p>
 
     <div class="google-btn-wrapper">
       <div id="g_id_onload" data-client_id="606508682227-kaoi6vcv5bphorgt2449hq54af12p9gk.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
@@ -34,12 +34,11 @@
     <button class="btn-secondary-login" type="button" id="btnDemoLogin"><i class="fa-solid fa-user-gear"></i> Entrar como Demo</button>
   </div>
 
-  <script src="./js/core/crypto.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/core/apiService.js"></script>
   <script src="./js/auth.js"></script>
 
-  <!-- SCRIPT DE SEGURIDAD: Si ya está logueado, no puede ver el login -->
+  <!-- Si ya está logueado, no puede ver el login -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const user = sessionStorage.getItem('sw_user') || localStorage.getItem('sw_user');
