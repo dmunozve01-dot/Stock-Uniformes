@@ -3,49 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>SmartWarehouse - Login</title>
+  <title>Stock Uniformes - Grupo ANC</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="./css/main.css">
 </head>
 <body class="login-body">
   <div class="login-card">
-    <div class="brand-logo"><i class="fa-solid fa-warehouse"></i></div>
-    <h2>SmartWarehouse</h2>
-    <p>Control de Stock de Uniformes</p>
+    
+    <!-- LOGO DE LA EMPRESA -->
+    <div class="brand-logo">
+      <!-- Asegúrate de que la ruta de la imagen sea correcta en tu proyecto -->
+      <img src="./assets/logo.png" alt="Grupo ANC">
+    </div>
+    
+    <h2>Control de Uniformes</h2>
+    <p>Ingresa con tu cuenta corporativa</p>
 
-    <!-- Contenedor del botón de Google (se llenará dinámicamente) -->
+    <!-- Contenedor del botón de Google -->
     <div class="google-btn-wrapper" id="googleBtnContainer">
       <div style="color: #64748b; font-size: 0.85rem;">Cargando Google Sign-In...</div>
     </div>
 
     <div class="remember-option">
       <input type="checkbox" id="rememberMe">
-      <label for="rememberMe">Mantener sesión</label>
+      <label for="rememberMe">Mantener sesión iniciada</label>
     </div>
+    
     <div class="divider"><span>o</span></div>
+    
     <button class="btn-secondary-login" type="button" id="btnDemoLogin">
       <i class="fa-solid fa-user-gear"></i> Entrar como Demo
     </button>
   </div>
 
-  <!-- Cargamos config.js PRIMERO para tener el Client ID disponible -->
   <script src="./js/config.js"></script>
-  
-  <!-- Script de Google (se carga después de config.js) -->
   <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
-  
-  <!-- Nuestros scripts -->
   <script src="./js/core/apiService.js"></script>
   <script src="./js/auth.js"></script>
 
-  <!-- Inicialización del botón de Google con el Client ID de config.js -->
   <script>
     function initGoogleSignIn() {
       if (typeof google === 'undefined' || !APP_CONFIG.GOOGLE_CLIENT_ID) {
-        console.error("❌ Google Sign-In no disponible o Client ID no configurado.");
         document.getElementById('googleBtnContainer').innerHTML = 
-          '<div style="color: #dc2626; font-size: 0.85rem;">Error al cargar Google</div>';
+          '<div style="color: #dc2626; font-size: 0.85rem;">Error de configuración de Google</div>';
         return;
       }
 
@@ -58,24 +59,18 @@
         document.getElementById('googleBtnContainer'),
         { 
           type: 'standard', 
-          shape: 'rectangular', 
+          shape: 'pill', /* Botón más redondeado, estilo moderno */
           theme: 'outline', 
           text: 'signin_with', 
           size: 'large',
-          width: 300
+          width: 280
         }
       );
-
-      // Opcional: descomenta esta línea para mostrar el prompt de un solo toque
-      // google.accounts.id.prompt();
     }
 
-    // Si ya está logueado, no puede ver el login
     document.addEventListener('DOMContentLoaded', () => {
       const user = sessionStorage.getItem('sw_user') || localStorage.getItem('sw_user');
-      if (user) {
-        window.location.replace('app.html');
-      }
+      if (user) window.location.replace('app.html');
     });
   </script>
 </body>
