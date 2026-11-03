@@ -36,13 +36,15 @@ class AppController {
     this.populatePrendaSelect();     
   }
 
-  // --- LÓGICA DE SELECTORES EN CASCADA ---
+  // --- LOGICA DEL SELECTOR EN CASCADA (FILTRO) ---
   populatePrendaSelect() {
     const selectTipo = document.getElementById('selectTipoPrenda');
     if(!selectTipo) return;
 
-    // Obtenemos los tipos únicos de prendas activas
+    // Obtenemos los tipos únicos de prendas activas que TENGAN stock
     const prendasActivas = this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0);
+    
+    // Set para obtener solo los nombres únicos (BOTAS, CAMISA, etc)
     const tiposUnicos = [...new Set(prendasActivas.map(i => i.Tipo.toUpperCase()))].sort();
 
     selectTipo.innerHTML = '<option value="">Seleccione una prenda...</option>';
@@ -58,18 +60,21 @@ class AppController {
 
     if(!selectTipo || !selectUbicacion) return;
 
+    // Cuando cambia la prenda seleccionada
     selectTipo.addEventListener('change', (e) => {
       const tipoSeleccionado = e.target.value;
       
+      // Limpiamos el segundo selector y el input oculto
       selectUbicacion.innerHTML = '';
       inputSku.value = '';
 
       if (!tipoSeleccionado) {
-        selectUbicacion.innerHTML = '<option value="">Primero seleccione una prenda...</option>';
+        selectUbicacion.innerHTML = '<option value="">Seleccione ubicación y talla...</option>';
         selectUbicacion.disabled = true;
         return;
       }
 
+      // Filtramos el inventario para buscar solo las de ese tipo con stock
       const opcionesUbicaciones = this.inventory.filter(i => 
         i.Tipo.toUpperCase() === tipoSeleccionado && 
         i.Estado !== 'ELIMINADO' && 
@@ -82,15 +87,18 @@ class AppController {
         return;
       }
 
+      // Llenamos el selector de ubicaciones
       selectUbicacion.disabled = false;
-      selectUbicacion.innerHTML = '<option value="">Seleccione ubicación y talla...</option>';
+      selectUbicacion.innerHTML = '<option value="">Seleccione una opción...</option>';
       
       opcionesUbicaciones.forEach(item => {
+        // Mostramos en el desplegable: Talla, Color, Ubicación y Stock actual
         const texto = `Talla: ${item.Talla} | Color: ${item.Color} | Ubic: ${item.Ubicacion} (Stock: ${item.Stock_Actual})`;
         selectUbicacion.innerHTML += `<option value="${item.ID_SKU}">${texto}</option>`;
       });
     });
 
+    // Cuando se selecciona una ubicación específica, guardamos su ID_SKU
     selectUbicacion.addEventListener('change', (e) => {
       inputSku.value = e.target.value;
     });
@@ -108,17 +116,21 @@ class AppController {
 
     const inputDni = document.getElementById('searchDni');
     if(inputDni) {
-      inputDni.addEventListener('input', (e) => {
-        const val = e.target.value;
+      // Remover eventos anteriores clonando el nodo (para que no se dupliquen)
+      const newInputDni = inputDni.cloneNode(true);
+      inputDni.parentNode.replaceChild(newInputDni, inputDni);
+
+      newInputDni.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
         const emp = this.personal.find(p => String(p['ID Empleado'] || p.ID_Empleado) === val);
         if (emp) {
           document.getElementById('moveDni').value = val;
           document.getElementById('moveName').value = emp.Nombre;
-          inputDni.style.borderColor = 'var(--neon-green)'; 
+          newInputDni.style.borderColor = 'var(--neon-green)'; 
         } else {
           document.getElementById('moveDni').value = '';
           document.getElementById('moveName').value = '';
-          inputDni.style.borderColor = 'var(--border-color)';
+          newInputDni.style.borderColor = 'var(--border-color)';
         }
       });
     }
