@@ -31,71 +31,72 @@ class AppController {
     this.renderMoves();
     this.renderTrash();
     
-    this.updateDashboard(); // Actualizar los números del dashboard
-    this.setupQuickSearch(); 
+    this.updateDashboard(); 
+    this.populateEmployeeDatalist(); 
+    this.populatePrendaSelect();     
   }
 
-  // --- LÓGICA DEL DASHBOARD ---
-  updateDashboard() {
-    // 1. Total de Prendas (Suma de Stock)
-    let totalPrendas = 0;
-    this.inventory.filter(i => i.Estado !== 'ELIMINADO').forEach(item => {
-      totalPrendas += Number(item.Stock_Actual) || 0;
+  // --- LÓGICA DE SELECTORES EN CASCADA ---
+  populatePrendaSelect() {
+    const selectTipo = document.getElementById('selectTipoPrenda');
+    if(!selectTipo) return;
+
+    // Obtenemos los tipos únicos de prendas activas
+    const prendasActivas = this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0);
+    const tiposUnicos = [...new Set(prendasActivas.map(i => i.Tipo.toUpperCase()))].sort();
+
+    selectTipo.innerHTML = '<option value="">Seleccione una prenda...</option>';
+    tiposUnicos.forEach(tipo => {
+      selectTipo.innerHTML += `<option value="${tipo}">${tipo}</option>`;
     });
-    document.getElementById('kpiTotalPrendas').innerText = totalPrendas;
+  }
 
-    // 2. Total de SKUs (Cantidad de filas activas)
-    const totalSkus = this.inventory.filter(i => i.Estado !== 'ELIMINADO').length;
-    document.getElementById('kpiTotalSkus').innerText = totalSkus;
+  setupCascadeLogic() {
+    const selectTipo = document.getElementById('selectTipoPrenda');
+    const selectUbicacion = document.getElementById('selectUbicacion');
+    const inputSku = document.getElementById('moveSku');
 
-    // 3. Entregas del Mes (Filtrar por fecha)
-    const hoy = new Date();
-    const mesActual = hoy.getMonth();
-    const anioActual = hoy.getFullYear();
-    
-    let entregasMes = 0;
-    this.moves.filter(m => m.Estado === 'ACTIVO' && m.Tipo === 'ENTREGA').forEach(m => {
-      const fechaMov = new Date(m.Fecha);
-      if (fechaMov.getMonth() === mesActual && fechaMov.getFullYear() === anioActual) {
-        entregasMes += Number(m.Cantidad) || 0;
-      }
-    });
-    document.getElementById('kpiEntregas').innerText = entregasMes;
+    if(!selectTipo || !selectUbicacion) return;
 
-    // 4. Personal Activo
-    const personalActivo = this.personal.filter(p => String(p.Estado).toUpperCase() === 'ACTIVO').length;
-    document.getElementById('kpiPersonal').innerText = personalActivo;
-
-    // 5. Llenar la tabla de Últimos Movimientos (solo los 5 más recientes)
-    const tbody = document.querySelector('#tableDashboardMoves tbody');
-    tbody.innerHTML = '';
-    const ultimosMoves = this.moves.slice(0, 5); // Los primeros 5 porque ya vienen en orden inverso
-
-    if (ultimosMoves.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay actividad reciente.</td></tr>';
-      return;
-    }
-
-    ultimosMoves.forEach(m => {
-      const fecha = new Date(m.Fecha).toLocaleString('es-PE');
-      const color = m.Tipo === 'ENTREGA' ? 'var(--danger)' : 'var(--neon-green)';
-      const signo = m.Tipo === 'ENTREGA' ? '-' : '+';
+    selectTipo.addEventListener('change', (e) => {
+      const tipoSeleccionado = e.target.value;
       
-      tbody.innerHTML += `
-        <tr>
-          <td style="font-size:0.8rem; font-weight:bold;">${m.ID_Movimiento}</td>
-          <td style="font-size:0.8rem; color:var(--text-gray);">${fecha}</td>
-          <td style="color:${color}; font-weight:bold;">${m.Tipo}</td>
-          <td>${m.ID_SKU}</td>
-          <td><b style="color:${color};">${signo}${m.Cantidad}</b></td>
-          <td>${m.Nombre} ${m.Apellido}</td>
-        </tr>
-      `;
+      selectUbicacion.innerHTML = '';
+      inputSku.value = '';
+
+      if (!tipoSeleccionado) {
+        selectUbicacion.innerHTML = '<option value="">Primero seleccione una prenda...</option>';
+        selectUbicacion.disabled = true;
+        return;
+      }
+
+      const opcionesUbicaciones = this.inventory.filter(i => 
+        i.Tipo.toUpperCase() === tipoSeleccionado && 
+        i.Estado !== 'ELIMINADO' && 
+        Number(i.Stock_Actual) > 0
+      );
+
+      if (opcionesUbicaciones.length === 0) {
+        selectUbicacion.innerHTML = '<option value="">Sin stock en ninguna ubicación</option>';
+        selectUbicacion.disabled = true;
+        return;
+      }
+
+      selectUbicacion.disabled = false;
+      selectUbicacion.innerHTML = '<option value="">Seleccione ubicación y talla...</option>';
+      
+      opcionesUbicaciones.forEach(item => {
+        const texto = `Talla: ${item.Talla} | Color: ${item.Color} | Ubic: ${item.Ubicacion} (Stock: ${item.Stock_Actual})`;
+        selectUbicacion.innerHTML += `<option value="${item.ID_SKU}">${texto}</option>`;
+      });
+    });
+
+    selectUbicacion.addEventListener('change', (e) => {
+      inputSku.value = e.target.value;
     });
   }
 
-  // --- AUTOCOMPLETADO CON UBICACIÓN ---
-  setupQuickSearch() {
+  populateEmployeeDatalist() {
     const datalistPersonal = document.getElementById('datalistPersonal');
     if(datalistPersonal) {
       datalistPersonal.innerHTML = '';
@@ -105,52 +106,82 @@ class AppController {
       });
     }
 
-    const datalistInventario = document.getElementById('datalistInventario');
-    if(datalistInventario) {
-      datalistInventario.innerHTML = '';
-      this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0).forEach(item => {
-        // Mostramos la ubicación en la lista
-        datalistInventario.innerHTML += `<option value="${item.ID_SKU}">${item.Tipo} ${item.Talla} ${item.Color} [${item.Ubicacion}] (Stock: ${item.Stock_Actual})</option>`;
+    const inputDni = document.getElementById('searchDni');
+    if(inputDni) {
+      inputDni.addEventListener('input', (e) => {
+        const val = e.target.value;
+        const emp = this.personal.find(p => String(p['ID Empleado'] || p.ID_Empleado) === val);
+        if (emp) {
+          document.getElementById('moveDni').value = val;
+          document.getElementById('moveName').value = emp.Nombre;
+          inputDni.style.borderColor = 'var(--neon-green)'; 
+        } else {
+          document.getElementById('moveDni').value = '';
+          document.getElementById('moveName').value = '';
+          inputDni.style.borderColor = 'var(--border-color)';
+        }
       });
     }
+  }
 
-    const inputDni = document.getElementById('searchDni');
-    inputDni.addEventListener('input', (e) => {
-      const val = e.target.value;
-      const emp = this.personal.find(p => String(p['ID Empleado'] || p.ID_Empleado) === val);
-      if (emp) {
-        document.getElementById('moveDni').value = val;
-        document.getElementById('moveName').value = emp.Nombre;
-        inputDni.style.borderColor = 'var(--neon-green)'; 
-      } else {
-        document.getElementById('moveDni').value = '';
-        document.getElementById('moveName').value = '';
-        inputDni.style.borderColor = 'var(--border-color)';
+  // --- LÓGICA DEL DASHBOARD ---
+  updateDashboard() {
+    let totalPrendas = 0;
+    this.inventory.filter(i => i.Estado !== 'ELIMINADO').forEach(item => {
+      totalPrendas += Number(item.Stock_Actual) || 0;
+    });
+    if(document.getElementById('kpiTotalPrendas')) document.getElementById('kpiTotalPrendas').innerText = totalPrendas;
+
+    const totalSkus = this.inventory.filter(i => i.Estado !== 'ELIMINADO').length;
+    if(document.getElementById('kpiTotalSkus')) document.getElementById('kpiTotalSkus').innerText = totalSkus;
+
+    const hoy = new Date();
+    const mesActual = hoy.getMonth();
+    const anioActual = hoy.getFullYear();
+    let entregasMes = 0;
+    this.moves.filter(m => m.Estado === 'ACTIVO' && m.Tipo === 'ENTREGA').forEach(m => {
+      const fechaMov = new Date(m.Fecha);
+      if (fechaMov.getMonth() === mesActual && fechaMov.getFullYear() === anioActual) {
+        entregasMes += Number(m.Cantidad) || 0;
       }
     });
+    if(document.getElementById('kpiEntregas')) document.getElementById('kpiEntregas').innerText = entregasMes;
 
-    const inputSku = document.getElementById('searchSku');
-    inputSku.addEventListener('input', (e) => {
-      const val = e.target.value.toUpperCase();
-      const item = this.inventory.find(i => i.ID_SKU === val && i.Estado !== 'ELIMINADO');
-      if (item) {
-        document.getElementById('moveSku').value = item.ID_SKU;
-        document.getElementById('moveItemDetail').value = `${item.Tipo} ${item.Talla} ${item.Color} - Ubic: ${item.Ubicacion} (Stock: ${item.Stock_Actual})`;
-        inputSku.style.borderColor = 'var(--neon-green)';
-      } else {
-        document.getElementById('moveSku').value = '';
-        document.getElementById('moveItemDetail').value = '';
-        inputSku.style.borderColor = 'var(--border-color)';
+    const personalActivo = this.personal.filter(p => String(p.Estado).toUpperCase() === 'ACTIVO').length;
+    if(document.getElementById('kpiPersonal')) document.getElementById('kpiPersonal').innerText = personalActivo;
+
+    const tbody = document.querySelector('#tableDashboardMoves tbody');
+    if(tbody) {
+      tbody.innerHTML = '';
+      const ultimosMoves = this.moves.slice(0, 5);
+      if (ultimosMoves.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay actividad reciente.</td></tr>';
+        return;
       }
-    });
+      ultimosMoves.forEach(m => {
+        const fecha = new Date(m.Fecha).toLocaleString('es-PE');
+        const color = m.Tipo === 'ENTREGA' ? 'var(--danger)' : 'var(--neon-green)';
+        const signo = m.Tipo === 'ENTREGA' ? '-' : '+';
+        tbody.innerHTML += `
+          <tr>
+            <td style="font-size:0.8rem; font-weight:bold;">${m.ID_Movimiento}</td>
+            <td style="font-size:0.8rem; color:var(--text-gray);">${fecha}</td>
+            <td style="color:${color}; font-weight:bold;">${m.Tipo}</td>
+            <td>${m.ID_SKU}</td>
+            <td><b style="color:${color};">${signo}${m.Cantidad}</b></td>
+            <td>${m.Nombre} ${m.Apellido}</td>
+          </tr>
+        `;
+      });
+    }
   }
 
   // --- LÓGICA DE PERSONAL ---
   async loadPersonal() {
     this.personal = await apiService.getPersonal();
     this.renderPersonal();
-    this.updateDashboard(); // Actualizar KPI de personal
-    this.setupQuickSearch(); 
+    this.updateDashboard(); 
+    this.populateEmployeeDatalist(); 
   }
 
   renderPersonal(filterText = '') {
@@ -472,6 +503,8 @@ class AppController {
       searchPersonal.addEventListener('input', (e) => this.renderPersonal(e.target.value));
     }
 
+    this.setupCascadeLogic();
+
     document.getElementById('btnSaveMove').addEventListener('click', () => this.saveMove());
 
     document.getElementById('btnNewSku').addEventListener('click', () => this.openCreateModal());
@@ -601,8 +634,8 @@ class AppController {
     const sku = document.getElementById('moveSku').value;
     const cantidad = parseInt(document.getElementById('moveQty').value);
 
-    if (!dni || !nombreCompleto) return alert("Debe seleccionar un empleado de la lista.");
-    if (!sku) return alert("Debe seleccionar una prenda de la lista.");
+    if (!dni || !nombreCompleto) return alert("Debe seleccionar un empleado.");
+    if (!sku) return alert("Debe seleccionar la ubicación de la prenda.");
     if (cantidad < 1) return alert("La cantidad debe ser mayor a 0.");
 
     const nameParts = nombreCompleto.split(' ');
@@ -633,10 +666,10 @@ class AppController {
       document.getElementById('moveName').value = '';
       document.getElementById('searchDni').style.borderColor = 'var(--border-color)';
       
-      document.getElementById('searchSku').value = '';
+      document.getElementById('selectTipoPrenda').value = '';
+      document.getElementById('selectUbicacion').innerHTML = '<option value="">Primero seleccione una prenda...</option>';
+      document.getElementById('selectUbicacion').disabled = true;
       document.getElementById('moveSku').value = '';
-      document.getElementById('moveItemDetail').value = '';
-      document.getElementById('searchSku').style.borderColor = 'var(--border-color)';
       
       document.getElementById('moveQty').value = '1';
       
@@ -666,9 +699,7 @@ class AppController {
 
   downloadTemplate() {
     const data = [
-      ["Tipo", "Talla", "Color", "Ubicacion", "Stock"],
-      ["Camisa", "M", "Azul", "Mass-09-01-02-01", 10],
-      ["Pantalon", "32", "Negro", "Mass-09-01-02-02", 5]
+      ["Tipo", "Talla", "Color", "Ubicacion", "Stock"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -726,7 +757,6 @@ class AppController {
   }
 }
 
-// Iniciar la app
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('tableInventory')) {
