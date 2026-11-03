@@ -1,6 +1,4 @@
-// Callback de Google
 window.handleCredentialResponse = function(response) {
-  console.log("✅ Login de Google exitoso");
   const payload = parseJwt(response.credential);
   saveUserSession({ name: payload.name, email: payload.email, picture: payload.picture });
 };
@@ -12,19 +10,14 @@ async function saveUserSession(userData) {
     try {
       const res = await apiService.getUserRole(userData.email);
       
-      // VALIDACIÓN DE BLOQUEO
       if (res.error === "TU_CUENTA_ESTA_BLOQUEADA") {
         alert("🚫 Tu cuenta ha sido bloqueada por un administrador. Contacta a soporte.");
-        if (typeof google !== 'undefined' && google.accounts) {
-          google.accounts.id.disableAutoSelect();
-        }
+        if (typeof google !== 'undefined' && google.accounts) google.accounts.id.disableAutoSelect();
         return; 
       }
 
       userData.role = res.role || 'USER';
-      if (res.name && res.name !== 'Desconocido') {
-        userData.name = res.name;
-      }
+      if (res.name && res.name !== 'Desconocido') userData.name = res.name;
       
       apiService.syncUser(userData); 
     } catch (err) {

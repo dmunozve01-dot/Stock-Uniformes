@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Control - Grupo ANC</title>
+  <title>SmartWarehouse - Grupo ANC</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="./css/main.css">
 </head>
 <body>
   <div class="dashboard-container">
     
-    <!-- Cabecera de Usuario -->
     <div class="user-profile">
       <img id="userAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Avatar" class="avatar">
       <div class="user-info">
@@ -20,18 +19,16 @@
       <button class="btn-logout" id="btnLogout"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
     </div>
 
-    <!-- Pestañas -->
     <div class="mode-switch">
       <button id="btnTabInv" class="btn-tab active"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
       <button id="btnTabMoves" class="btn-tab"><i class="fa-solid fa-hand-holding"></i> Movimientos</button>
+      <button id="btnTabPersonal" class="btn-tab hidden admin-tab"><i class="fa-solid fa-user-tie"></i> Personal</button>
       <button id="btnTabTrash" class="btn-tab"><i class="fa-solid fa-trash-can"></i> Papelera</button>
       <button id="btnTabUsers" class="btn-tab hidden admin-tab"><i class="fa-solid fa-users"></i> Usuarios</button>
     </div>
 
     <!-- PANEL 1: INVENTARIO -->
     <section id="panelInv" class="panel active">
-      
-      <!-- Botones de Admin -->
       <div id="adminTools" class="hidden" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
         <button class="btn btn-primary" id="btnNewSku" style="flex: 1; min-width: 200px;">
           <i class="fa-solid fa-plus"></i> Registrar Prenda Nueva
@@ -54,13 +51,7 @@
           <table id="tableInventory" class="data-table">
             <thead>
               <tr>
-                <th>ID SKU</th>
-                <th>Tipo</th>
-                <th>Talla</th>
-                <th>Color</th>
-                <th>Ubicación</th>
-                <th>Stock</th>
-                <th class="hidden admin-col">Acciones</th>
+                <th>ID SKU</th><th>Tipo</th><th>Talla</th><th>Color</th><th>Ubicación</th><th>Stock</th><th class="hidden admin-col">Acciones</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -85,9 +76,22 @@
         </div>
         
         <div id="deliveryFields" class="form-grid" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-          <div class="form-group"><label>DNI Empleado</label><input type="text" id="moveDni" placeholder="Ej: 12345678"></div>
-          <div class="form-group"><label>Nombres</label><input type="text" id="moveName" placeholder="Ej: Juan"></div>
-          <div class="form-group"><label>Apellidos</label><input type="text" id="moveLastname" placeholder="Ej: Perez"></div>
+          
+          <div class="form-group" style="flex: 2;">
+            <label>Buscar Empleado (DNI o Nombre)</label>
+            <input type="text" id="searchEmployee" list="employeeList" placeholder="Escribe el DNI o Nombre..." autocomplete="off">
+            <datalist id="employeeList"></datalist>
+          </div>
+
+          <div class="form-group">
+            <label>DNI Empleado</label>
+            <input type="text" id="moveDni" placeholder="Autocompletado" readonly style="background:#18181b; color:#a1a1aa;">
+          </div>
+          <div class="form-group" style="flex: 2;">
+            <label>Nombre Completo</label>
+            <input type="text" id="moveName" placeholder="Autocompletado" readonly style="background:#18181b; color:#a1a1aa;">
+          </div>
+          
         </div>
 
         <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 20px; width: 100%; max-width: 250px;">
@@ -108,11 +112,36 @@
       </div>
     </section>
 
-    <!-- PANEL 3: PAPELERA -->
+    <!-- PANEL 3: PERSONAL -->
+    <section id="panelPersonal" class="panel hidden">
+      <div id="personalTools" class="hidden" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <button class="btn btn-primary" id="btnNewPersonal" style="flex: 1; min-width: 200px;">
+          <i class="fa-solid fa-user-plus"></i> Registrar Nuevo Ingreso
+        </button>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+          <h3 style="margin: 0; border:none; padding:0;"><i class="fa-solid fa-users"></i> Directorio de Personal</h3>
+          <input type="text" id="searchPersonal" class="search-input" placeholder="🔍 Buscar por DNI o Nombre...">
+        </div>
+        <div class="table-responsive">
+          <table id="tablePersonal" class="data-table">
+            <thead>
+              <tr>
+                <th>ID Empleado</th><th>Nombre</th><th>Posición</th><th>Cliente</th><th>Turno</th><th>Estado</th><th class="hidden admin-col">Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL 4: PAPELERA -->
     <section id="panelTrash" class="panel hidden">
       <div class="card">
         <h3><i class="fa-solid fa-trash-can"></i> Movimientos y Prendas Eliminadas</h3>
-        <p style="color:var(--text-gray); font-size:0.9rem; margin-bottom:15px;">Recupera entregas o prendas eliminadas por error. El stock se ajustará automáticamente.</p>
         <div class="table-responsive">
           <table id="tableTrash" class="data-table">
             <thead>
@@ -124,11 +153,10 @@
       </div>
     </section>
 
-    <!-- PANEL 4: USUARIOS (Admin) -->
+    <!-- PANEL 5: USUARIOS -->
     <section id="panelUsers" class="panel hidden">
       <div class="card">
         <h3><i class="fa-solid fa-users-gear"></i> Gestión de Usuarios</h3>
-        <p style="color:var(--text-gray); font-size:0.9rem; margin-bottom:15px;">Bloquea o desbloquea el acceso de los empleados a la plataforma.</p>
         <div class="table-responsive">
           <table id="tableUsers" class="data-table">
             <thead>
@@ -159,6 +187,49 @@
       <div style="display:flex; gap:10px; margin-top:25px;">
         <button class="btn btn-cancel" id="btnCancelSku">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveSku" style="flex: 1;">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Crear/Editar Personal -->
+  <div id="modalPersonal" class="hidden modal-overlay">
+    <div class="card" style="width:90%; max-width:600px;">
+      <h3 id="modalPersonalTitle">Registrar Nuevo Ingreso</h3>
+      
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Empleado (DNI)</label>
+          <input type="text" id="persId" placeholder="Ej: 71004570" maxlength="8">
+        </div>
+        <div class="form-group">
+          <label>Nombre Completo</label>
+          <input type="text" id="persName" placeholder="Ej: KEVIN JESUS BURGOS QUIROZ">
+        </div>
+        <div class="form-group">
+          <label>Fecha Nacimiento</label>
+          <input type="date" id="persDate">
+        </div>
+        <div class="form-group">
+          <label>Posición</label>
+          <input type="text" id="persPosition" placeholder="Ej: ASISTENTE DE ALMACEN">
+        </div>
+        <div class="form-group">
+          <label>Cliente</label>
+          <input type="text" id="persClient" placeholder="Ej: CD OSLO TRUJILLO">
+        </div>
+        <div class="form-group">
+          <label>Turno</label>
+          <select id="persShift">
+            <option value="DÍA">DÍA</option>
+            <option value="NOCHE">NOCHE</option>
+            <option value="ROTATIVO">ROTATIVO</option>
+          </select>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:25px;">
+        <button class="btn btn-cancel" id="btnCancelPersonal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSavePersonal" style="flex: 1;">Guardar Registro</button>
       </div>
     </div>
   </div>

@@ -4,47 +4,192 @@ class AppController {
     this.inventory = [];
     this.moves = [];
     this.users = []; 
+    this.personal = [];
     this.editingSku = null; 
+    this.editingPersonal = null;
   }
 
   async init() {
-    // Verificar sesión
     if (!this.currentUser) return window.location.replace('index.html');
-    
-    // Cargar datos del usuario en la cabecera
     checkSessionAndLoadUI();
 
-    // Configurar vista de Administrador
     if (this.currentUser.role === 'ADMIN') {
       document.getElementById('adminTools').classList.remove('hidden');
       document.querySelectorAll('.admin-col').forEach(el => el.classList.remove('hidden'));
-      // La pestaña de usuarios se muestra automáticamente en auth.js
     }
 
     this.setupListeners();
     await this.loadData();
+    await this.loadPersonal();
   }
 
   async loadData() {
-    // 1. Cargar Inventario
     this.inventory = await apiService.getInventory();
     this.renderInventory();
     this.populateSkuSelect();
 
-    // 2. Cargar Movimientos
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
   }
 
+  // --- LÓGICA DE PERSONAL ---
+  async loadPersonal() {
+    this.personal = await apiService.getPersonal();
+    this.renderPersonal();
+    this.populateEmployeeDatalist(); 
+  }
+
+  renderPersonal(filterText = '') {
+    const tbody = document.querySelector('#tablePersonal tbody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    let filtered = this.personal;
+    if (filterText) {
+      const text = filterText.toLowerCase();
+      filtered = filtered.filter(p => 
+        String(p.ID_Empleado).includes(text) || 
+        String(p.Nombre).toLowerCase().includes(text) ||
+        String(p.Cliente).toLowerCase().includes(text)
+      );
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontró personal.</td></tr>';
+      return;
+    }
+
+    filtered.forEach(p => {
+      const adminActions = this.currentUser.role === 'ADMIN' ? `
+        <td class="admin-col" style="display: flex; gap: 5px;">
+          <button class="btn-restore" onclick="app.openEditPersonal('${p.ID_Empleado}')" title="Editar">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+        </td>
+      ` : '';
+
+      tbody.innerHTML += `
+        <tr>
+          <td><b>${p.ID_Empleado}</b></td>
+          <td>${p.Nombre}</td>
+          <td>${p.Posicion}</td>
+          <td>${p.Cliente}</td>
+          <td>${p.Turno}</td>
+          <td style="color:var(--neon-green); font-weight:bold;">${p.Estado}</td>
+          ${adminActions}
+        </tr>
+      `;
+    });
+  }
+
+  populateEmployeeDatalist() {
+    const datalist = document.getElementById('employeeList');
+    if(!datalist) return;
+    
+    datalist.innerHTML = '';
+    this.personal.filter(p => p.Estado === 'ACTIVO').forEach(p => {
+      datalist.innerHTML += `<option value="${p.ID_Empleado}">${p.Nombre}</option>`;
+    });
+
+    const searchInput = document.getElementById('searchEmployee');
+    // Remover listener previo para evitar duplicados
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+    
+    newSearchInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      const empleado = this.personal.find(p => 
+        String(p.ID_Empleado) === val || 
+        String(p.Nombre).toLowerCase() === val.toLowerCase()
+      );
+
+      if (empleado) {
+        document.getElementById('moveDni').value = empleado.ID_Empleado;
+        document.getElementById('moveName').value = empleado.Nombre;
+      } else {
+        document.getElementById('moveDni').value = '';
+        document.getElementById('moveName').value = '';
+      }
+    });
+  }
+
+  openCreatePersonal() {
+    this.editingPersonal = null;
+    document.getElementById('modalPersonalTitle').innerText = "Registrar Nuevo Ingreso";
+    document.getElementById('persId').disabled = false;
+    document.getElementById('persId').value = '';
+    document.getElementById('persName').value = '';
+    document.getElementById('persDate').value = '';
+    document.getElementById('persPosition').value = '';
+    document.getElementById('persClient').value = '';
+    document.getElementById('persShift').value = 'DÍA';
+    document.getElementById('modalPersonal').classList.remove('hidden');
+  }
+
+  openEditPersonal(id) {
+    const p = this.personal.find(item => String(item.ID_Empleado) === String(id));
+    if (!p) return;
+
+    this.editingPersonal = id;
+    document.getElementById('modalPersonalTitle').innerText = "Editar Personal";
+    document.getElementById('persId').value = p.ID_Empleado;
+    document.getElementById('persId').disabled = true;
+    document.getElementById('persName').value = p.Nombre;
+    if (p.Fecha_Nacimiento) {
+      const d = new Date(p.Fecha_Nacimiento);
+      document.getElementById('persDate').value = d.toISOString().split('T')[0];
+    } else {
+      document.getElementById('persDate').value = '';
+    }
+    document.getElementById('persPosition').value = p.Posicion;
+    document.getElementById('persClient').value = p.Cliente;
+    document.getElementById('persShift').value = p.Turno;
+    document.getElementById('modalPersonal').classList.remove('hidden');
+  }
+
+  async savePersonal() {
+    const personalData = {
+      id_empleado: document.getElementById('persId').value.trim(),
+      nombre: document.getElementById('persName').value.trim().toUpperCase(),
+      fecha_nac: document.getElementById('persDate').value,
+      posicion: document.getElementById('persPosition').value.trim().toUpperCase(),
+      cliente: document.getElementById('persClient').value.trim().toUpperCase(),
+      turno: document.getElementById('persShift').value,
+      estado: 'ACTIVO'
+    };
+
+    if (!personalData.id_empleado || !personalData.nombre) {
+      return alert("El DNI y el Nombre son obligatorios.");
+    }
+
+    const btn = document.getElementById('btnSavePersonal');
+    btn.disabled = true;
+    
+    let success = false;
+    if (this.editingPersonal) {
+      success = await apiService.updatePersonal(personalData);
+    } else {
+      success = await apiService.createPersonal(personalData);
+    }
+
+    if (success) {
+      alert(this.editingPersonal ? "✅ Personal actualizado." : "✅ Ingreso registrado.");
+      document.getElementById('modalPersonal').classList.add('hidden');
+      await this.loadPersonal();
+    } else {
+      alert("❌ Error al guardar.");
+    }
+    btn.disabled = false;
+  }
+  // --- FIN LÓGICA PERSONAL ---
+
   renderInventory(filterText = '') {
     const tbody = document.querySelector('#tableInventory tbody');
     tbody.innerHTML = '';
     
-    // Solo mostrar prendas que NO estén eliminadas
     let filtered = this.inventory.filter(item => item.Estado !== 'ELIMINADO');
 
-    // Aplicar filtro de búsqueda si hay texto
     if (filterText) {
       const text = filterText.toLowerCase();
       filtered = filtered.filter(item => 
@@ -89,7 +234,6 @@ class AppController {
   populateSkuSelect() {
     const select = document.getElementById('moveSkuSelect');
     select.innerHTML = '<option value="">Seleccione SKU...</option>';
-    // Solo mostrar prendas activas con stock mayor a 0
     this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0).forEach(item => {
       select.innerHTML += `<option value="${item.ID_SKU}">${item.ID_SKU} - ${item.Tipo} ${item.Talla} (Stock: ${item.Stock_Actual})</option>`;
     });
@@ -98,7 +242,6 @@ class AppController {
   renderMoves() {
     const tbody = document.querySelector('#tableMoves tbody');
     tbody.innerHTML = '';
-    // Solo mostrar entregas ACTIVAS
     const activos = this.moves.filter(m => m.Estado === 'ACTIVO');
     
     if (activos.length === 0) {
@@ -139,7 +282,6 @@ class AppController {
       return;
     }
 
-    // 1. Renderizar Entregas Anuladas
     movesAnulados.forEach(m => {
       const fecha = new Date(m.Fecha).toLocaleString('es-PE');
       tbody.innerHTML += `
@@ -158,7 +300,6 @@ class AppController {
       `;
     });
 
-    // 2. Renderizar Prendas Eliminadas
     prendasEliminadas.forEach(item => {
       tbody.innerHTML += `
         <tr style="background:rgba(255, 0, 60, 0.05);">
@@ -184,16 +325,11 @@ class AppController {
     this.users = await apiService.getUsers();
     tbody.innerHTML = '';
 
-    if (this.users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay usuarios registrados.</td></tr>';
-      return;
-    }
-
     this.users.forEach(u => {
       const isBlocked = String(u.Estado).toUpperCase() === 'BLOQUEADO';
       const badgeColor = isBlocked ? 'var(--danger)' : 'var(--neon-green)';
       const btnText = isBlocked ? 'Desbloquear' : 'Bloquear';
-      const btnClass = isBlocked ? 'btn-restore' : 'btn-delete'; // Verde para desbloquear, rojo para bloquear
+      const btnClass = isBlocked ? 'btn-restore' : 'btn-delete'; 
 
       tbody.innerHTML += `
         <tr>
@@ -214,7 +350,6 @@ class AppController {
   async toggleUser(email, nuevoEstado) {
     const accion = nuevoEstado === 'BLOQUEADO' ? 'bloquear' : 'desbloquear';
     if (!confirm(`¿Estás seguro de ${accion} al usuario ${email}?`)) return;
-
     const success = await apiService.toggleUserStatus(email, nuevoEstado);
     if (success) {
       alert(`✅ Usuario ${accion}do correctamente.`);
@@ -225,12 +360,10 @@ class AppController {
   }
 
   setupListeners() {
-    // Tabs
     document.getElementById('btnTabInv').addEventListener('click', () => this.switchTab('panelInv', 'btnTabInv'));
     document.getElementById('btnTabMoves').addEventListener('click', () => this.switchTab('panelMoves', 'btnTabMoves'));
     document.getElementById('btnTabTrash').addEventListener('click', () => this.switchTab('panelTrash', 'btnTabTrash'));
     
-    // Botón de usuarios (solo si existe en el DOM)
     const btnTabUsers = document.getElementById('btnTabUsers');
     if(btnTabUsers) {
       btnTabUsers.addEventListener('click', () => {
@@ -239,26 +372,35 @@ class AppController {
       });
     }
 
-    // Buscador
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      this.renderInventory(e.target.value);
-    });
+    const btnTabPersonal = document.getElementById('btnTabPersonal');
+    if(btnTabPersonal) {
+      btnTabPersonal.addEventListener('click', () => this.switchTab('panelPersonal', 'btnTabPersonal'));
+    }
 
-    // Movimientos
+    document.getElementById('searchInput').addEventListener('input', (e) => this.renderInventory(e.target.value));
+    
+    const searchPersonal = document.getElementById('searchPersonal');
+    if(searchPersonal) {
+      searchPersonal.addEventListener('input', (e) => this.renderPersonal(e.target.value));
+    }
+
     document.getElementById('btnSaveMove').addEventListener('click', () => this.saveMove());
 
-    // Modales SKU
     document.getElementById('btnNewSku').addEventListener('click', () => this.openCreateModal());
-    document.getElementById('btnCancelSku').addEventListener('click', () => {
-      document.getElementById('modalSku').classList.add('hidden');
-    });
+    document.getElementById('btnCancelSku').addEventListener('click', () => document.getElementById('modalSku').classList.add('hidden'));
     document.getElementById('btnSaveSku').addEventListener('click', () => this.saveSku());
 
-    // Excel
+    const btnNewPersonal = document.getElementById('btnNewPersonal');
+    if(btnNewPersonal) btnNewPersonal.addEventListener('click', () => this.openCreatePersonal());
+    
+    const btnCancelPersonal = document.getElementById('btnCancelPersonal');
+    if(btnCancelPersonal) btnCancelPersonal.addEventListener('click', () => document.getElementById('modalPersonal').classList.add('hidden'));
+    
+    const btnSavePersonal = document.getElementById('btnSavePersonal');
+    if(btnSavePersonal) btnSavePersonal.addEventListener('click', () => this.savePersonal());
+
     document.getElementById('btnDownloadTemplate').addEventListener('click', () => this.downloadTemplate());
-    document.getElementById('btnUploadExcel').addEventListener('click', () => {
-      document.getElementById('excelFileInput').click();
-    });
+    document.getElementById('btnUploadExcel').addEventListener('click', () => document.getElementById('excelFileInput').click());
     document.getElementById('excelFileInput').addEventListener('change', (e) => this.handleExcelUpload(e));
   }
 
@@ -267,9 +409,7 @@ class AppController {
       p.style.display = 'none';
       p.classList.remove('active');
     });
-    document.querySelectorAll('.btn-tab').forEach(b => {
-      b.classList.remove('active');
-    });
+    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
     const panel = document.getElementById(panelId);
     if(panel) {
       panel.style.display = 'block';
@@ -288,27 +428,21 @@ class AppController {
     document.getElementById('skuColor').value = '';
     document.getElementById('skuLocation').value = '';
     document.getElementById('skuStock').value = '0';
-    
-    // Solo quitamos el hidden, el CSS lo centrará solo
     document.getElementById('modalSku').classList.remove('hidden');
   }
 
   openEditModal(skuId) {
     const item = this.inventory.find(i => i.ID_SKU === skuId);
     if (!item) return;
-    
     this.editingSku = skuId;
     document.getElementById('modalSkuTitle').innerText = "Editar Prenda";
     document.getElementById('modalSkuId').style.display = 'block';
     document.getElementById('modalSkuId').innerText = `ID: ${item.ID_SKU}`;
-    
     document.getElementById('skuType').value = item.Tipo;
     document.getElementById('skuSize').value = item.Talla;
     document.getElementById('skuColor').value = item.Color;
     document.getElementById('skuLocation').value = item.Ubicacion;
     document.getElementById('skuStock').value = item.Stock_Actual;
-    
-    // Solo quitamos el hidden, el CSS lo centrará solo
     document.getElementById('modalSku').classList.remove('hidden');
   }
 
@@ -320,13 +454,10 @@ class AppController {
       ubicacion: document.getElementById('skuLocation').value,
       stock: parseInt(document.getElementById('skuStock').value) || 0
     };
-    
     if (!item.tipo) return alert("El Tipo de prenda es obligatorio.");
-    
     const btn = document.getElementById('btnSaveSku');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-    
     let success = false;
     if (this.editingSku) {
       item.id_sku = this.editingSku;
@@ -334,7 +465,6 @@ class AppController {
     } else {
       success = await apiService.createInventory(item);
     }
-    
     if (success) {
       alert(this.editingSku ? "✅ Prenda actualizada." : "✅ Prenda registrada.");
       document.getElementById('modalSku').classList.add('hidden');
@@ -342,7 +472,6 @@ class AppController {
     } else {
       alert("❌ Error al guardar.");
     }
-    
     btn.disabled = false;
     btn.innerHTML = 'Guardar';
   }
@@ -360,13 +489,10 @@ class AppController {
 
   async restoreSku(skuId) {
     if (!confirm(`¿Restaurar la prenda ${skuId} al inventario activo?`)) return;
-    
     const item = this.inventory.find(i => i.ID_SKU === skuId);
     if (!item) return;
-    
     item.estado = 'ACTIVO';
     const success = await apiService.updateInventory(item);
-    
     if (success) {
       alert("✅ Prenda restaurada.");
       await this.loadData();
@@ -378,19 +504,25 @@ class AppController {
   async saveMove() {
     const sku = document.getElementById('moveSkuSelect').value;
     const cantidad = parseInt(document.getElementById('moveQty').value);
+    const dni = document.getElementById('moveDni').value;
+    const nombreCompleto = document.getElementById('moveName').value;
+
     if (!sku || cantidad < 1) return alert("Seleccione un SKU y cantidad válida.");
-    
+    if (!dni || !nombreCompleto) return alert("Debe buscar y seleccionar a un empleado válido.");
+
+    const nameParts = nombreCompleto.split(' ');
+    const nombre = nameParts[0];
+    const apellido = nameParts.slice(1).join(' ');
+
     const moveData = {
       tipo: 'ENTREGA',
       id_sku: sku, 
       cantidad,
-      dni: document.getElementById('moveDni').value,
-      nombre: document.getElementById('moveName').value,
-      apellido: document.getElementById('moveLastname').value,
+      dni: dni,
+      nombre: nombre,
+      apellido: apellido,
       admin: this.currentUser.name
     };
-    
-    if (!moveData.dni || !moveData.nombre) return alert("El DNI y Nombre son obligatorios.");
     
     const btn = document.getElementById('btnSaveMove');
     btn.disabled = true; 
@@ -401,9 +533,9 @@ class AppController {
     if (success) {
       alert("✅ Entrega registrada.");
       document.getElementById('moveQty').value = '1';
+      document.getElementById('searchEmployee').value = '';
       document.getElementById('moveDni').value = '';
       document.getElementById('moveName').value = '';
-      document.getElementById('moveLastname').value = '';
       
       setTimeout(async () => { 
         await this.loadData(); 
@@ -431,7 +563,9 @@ class AppController {
 
   downloadTemplate() {
     const data = [
-      ["Tipo", "Talla", "Color", "Ubicacion", "Stock"]
+      ["Tipo", "Talla", "Color", "Ubicacion", "Stock"],
+      ["Camisa", "M", "Azul", "Mass-09-01-02-01", 10],
+      ["Pantalon", "32", "Negro", "Mass-09-01-02-02", 5]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -489,7 +623,6 @@ class AppController {
   }
 }
 
-// Iniciar la app
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('tableInventory')) {

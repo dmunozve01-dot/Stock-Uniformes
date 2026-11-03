@@ -7,7 +7,7 @@ class APIService {
     try {
       const res = await fetch(`${url}?action=getUserRole&email=${encodeURIComponent(email)}`);
       const json = await res.json();
-      return json; // Devolvemos el JSON completo para que auth.js verifique si hay error de bloqueo
+      return json; 
     } catch (err) { return { success: false, error: "Error de conexión" }; }
   }
 
@@ -41,6 +41,42 @@ class APIService {
         method: "POST", mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "toggleUserStatus", email: email, estado: nuevoEstado })
+      });
+      return true; 
+    } catch (err) { return false; }
+  }
+
+  async getPersonal() {
+    const url = await this.getBaseUrl();
+    if (!url) return [];
+    try {
+      const res = await fetch(`${url}?action=getPersonal`);
+      const json = await res.json();
+      return json.success ? json.data : [];
+    } catch (err) { return []; }
+  }
+
+  async createPersonal(personalData) {
+    const url = await this.getBaseUrl();
+    if (!url) return false;
+    try {
+      await fetch(url, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "createPersonal", personal: personalData })
+      });
+      return true; 
+    } catch (err) { return false; }
+  }
+
+  async updatePersonal(personalData) {
+    const url = await this.getBaseUrl();
+    if (!url) return false;
+    try {
+      await fetch(url, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "updatePersonal", personal: personalData })
       });
       return true; 
     } catch (err) { return false; }
