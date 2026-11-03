@@ -21,23 +21,78 @@ class AppController {
     this.setupListeners();
     await this.loadData();
     await this.loadPersonal();
+    this.setupQuickSearch(); // Iniciar buscadores rápidos
   }
 
   async loadData() {
     this.inventory = await apiService.getInventory();
     this.renderInventory();
-    this.populateSkuSelect();
 
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
   }
 
+  // --- BÚSQUEDA RÁPIDA POR DNI Y SKU ---
+  setupQuickSearch() {
+    // 1. Buscador de Empleado por DNI
+    const inputDni = document.getElementById('searchDni');
+    inputDni.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = inputDni.value.trim();
+        if(!val) return;
+        
+        // Buscar en el array de personal
+        const emp = this.personal.find(p => String(p['ID Empleado'] || p.ID_Empleado) === val);
+        
+        if (emp) {
+          document.getElementById('moveDni').value = val;
+          document.getElementById('moveName').value = emp.Nombre;
+          inputDni.style.borderColor = 'var(--neon-green)'; // Feedback visual
+        } else {
+          document.getElementById('moveDni').value = '';
+          document.getElementById('moveName').value = '';
+          alert("⚠️ DNI no encontrado en el directorio.");
+          inputDni.style.borderColor = 'var(--danger)';
+        }
+      }
+    });
+
+    // 2. Buscador de Prenda por SKU
+    const inputSku = document.getElementById('searchSku');
+    inputSku.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = inputSku.value.trim().toUpperCase();
+        if(!val) return;
+        
+        // Buscar en el inventario
+        const item = this.inventory.find(i => i.ID_SKU === val && i.Estado !== 'ELIMINADO');
+        
+        if (item) {
+          if (Number(item.Stock_Actual) <= 0) {
+             alert("⚠️ Esta prenda no tiene stock disponible.");
+             inputSku.style.borderColor = 'var(--danger)';
+             return;
+          }
+          document.getElementById('moveSku').value = item.ID_SKU;
+          document.getElementById('moveItemDetail').value = `${item.Tipo} ${item.Talla} ${item.Color} (Stock: ${item.Stock_Actual})`;
+          inputSku.style.borderColor = 'var(--neon-green)';
+        } else {
+          document.getElementById('moveSku').value = '';
+          document.getElementById('moveItemDetail').value = '';
+          alert("⚠️ SKU no encontrado o prenda eliminada.");
+          inputSku.style.borderColor = 'var(--danger)';
+        }
+      }
+    });
+  }
+
   // --- LÓGICA DE PERSONAL ---
   async loadPersonal() {
     this.personal = await apiService.getPersonal();
     this.renderPersonal();
-    this.populateEmployeeSelect(); 
   }
 
   renderPersonal(filterText = '') {
@@ -49,7 +104,6 @@ class AppController {
     if (filterText) {
       const text = filterText.toLowerCase();
       filtered = filtered.filter(p => {
-        // Leer columnas con o sin espacios/tildes según el Excel
         const dni = String(p['ID Empleado'] || p.ID_Empleado || '').toLowerCase();
         const nombre = String(p.Nombre || '').toLowerCase();
         const cliente = String(p.Cliente || '').toLowerCase();
@@ -71,7 +125,6 @@ class AppController {
         </td>
       ` : '';
 
-      // Arreglado para leer las columnas con o sin guiones bajos
       tbody.innerHTML += `
         <tr>
           <td><b>${p['ID Empleado'] || p.ID_Empleado}</b></td>
@@ -83,17 +136,6 @@ class AppController {
           ${adminActions}
         </tr>
       `;
-    });
-  }
-
-  populateEmployeeSelect() {
-    const select = document.getElementById('moveEmployeeSelect');
-    if(!select) return;
-    
-    select.innerHTML = '<option value="">Seleccione un empleado...</option>';
-    this.personal.filter(p => String(p.Estado).toUpperCase() === 'ACTIVO').forEach(p => {
-      const dni = p['ID Empleado'] || p.ID_Empleado;
-      select.innerHTML += `<option value="${dni}">${p.Nombre} (${dni})</option>`;
     });
   }
 
@@ -220,14 +262,6 @@ class AppController {
     });
   }
 
-  populateSkuSelect() {
-    const select = document.getElementById('moveSkuSelect');
-    select.innerHTML = '<option value="">Seleccione SKU...</option>';
-    this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0).forEach(item => {
-      select.innerHTML += `<option value="${item.ID_SKU}">${item.ID_SKU} - ${item.Tipo} ${item.Talla} (Stock: ${item.Stock_Actual})</option>`;
-    });
-  }
-
   renderMoves() {
     const tbody = document.querySelector('#tableMoves tbody');
     tbody.innerHTML = '';
@@ -307,7 +341,6 @@ class AppController {
     });
   }
 
-  // --- LÓGICA DE USUARIOS ---
   async loadUsers() {
     const tbody = document.querySelector('#tableUsers tbody');
     tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Cargando usuarios...</td></tr>';
@@ -494,15 +527,14 @@ class AppController {
   }
 
   async saveMove() {
-    const selectEmp = document.getElementById('moveEmployeeSelect');
-    const dni = selectEmp.value;
-    const nombreCompleto = selectEmp.options[selectEmp.selectedIndex].text.split(' (')[0]; // Extrae solo el nombre
-    
-    const sku = document.getElementById('moveSkuSelect').value;
+    const dni = document.getElementById('moveDni').value;
+    const nombreCompleto = document.getElementById('moveName').value;
+    const sku = document.getElementById('moveSku').value;
     const cantidad = parseInt(document.getElementById('moveQty').value);
 
-    if (!sku || cantidad < 1) return alert("Seleccione un SKU y cantidad válida.");
-    if (!dni) return alert("Debe seleccionar a un empleado de la lista.");
+    if (!dni || !nombreCompleto) return alert("Debe buscar un DNI válido primero.");
+    if (!sku) return alert("Debe buscar una prenda por SKU válida primero.");
+    if (cantidad < 1) return alert("La cantidad debe ser mayor a 0.");
 
     const nameParts = nombreCompleto.split(' ');
     const nombre = nameParts[0];
@@ -526,18 +558,29 @@ class AppController {
     
     if (success) {
       alert("✅ Entrega registrada y stock descontado.");
+      
+      // Limpiar campos
+      document.getElementById('searchDni').value = '';
+      document.getElementById('moveDni').value = '';
+      document.getElementById('moveName').value = '';
+      document.getElementById('searchDni').style.borderColor = 'var(--border-color)';
+      
+      document.getElementById('searchSku').value = '';
+      document.getElementById('moveSku').value = '';
+      document.getElementById('moveItemDetail').value = '';
+      document.getElementById('searchSku').style.borderColor = 'var(--border-color)';
+      
       document.getElementById('moveQty').value = '1';
-      document.getElementById('moveEmployeeSelect').value = '';
       
       setTimeout(async () => { 
         await this.loadData(); 
         btn.disabled = false; 
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> Entregar y Descontar'; 
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Registrar Entrega y Descontar'; 
       }, 1500);
     } else {
       alert("❌ Error al registrar.");
       btn.disabled = false; 
-      btn.innerHTML = '<i class="fa-solid fa-check"></i> Entregar y Descontar';
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Registrar Entrega y Descontar';
     }
   }
 
