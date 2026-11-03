@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>SmartWarehouse - Grupo ANC</title>
+  <title>Grupo ANC</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="./css/main.css">
 </head>
 <body>
+  <!-- BOTÓN MODO OSCURO / CLARO -->
   <button class="theme-toggle" id="themeToggle" title="Cambiar tema">
     <i class="fa-solid fa-moon" id="themeIcon"></i>
   </button>
@@ -179,7 +180,7 @@
     </section>
 
     <!-- FOOTER DERECHOS RESERVADOS -->
-    <div style="margin-top: 40px; text-align: center; font-size: 0.75rem; color: var(--text-gray); border-top: 1px solid var(--border-color); padding-top: 20px;">
+    <div class="footer-text">
       &copy; 2026 Desarrollado por <strong>Dick Marcelo Muñoz Vela</strong> - Todos los derechos reservados.
     </div>
 
@@ -229,6 +230,7 @@
   <script src="./js/auth.js"></script>
   <script src="./js/ui/appController.js"></script>
 
+  <!-- SCRIPT PARA EL MODO OSCURO / CLARO -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const themeToggle = document.getElementById('themeToggle');
