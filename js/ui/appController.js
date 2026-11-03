@@ -21,70 +21,73 @@ class AppController {
     this.setupListeners();
     await this.loadData();
     await this.loadPersonal();
-    this.setupQuickSearch(); // Iniciar buscadores rápidos
   }
 
   async loadData() {
     this.inventory = await apiService.getInventory();
     this.renderInventory();
+    this.setupQuickSearch(); // Llenar datalist de inventario
 
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
   }
 
-  // --- BÚSQUEDA RÁPIDA POR DNI Y SKU ---
+  // --- AUTOCOMPLETADO POR DATALIST ---
   setupQuickSearch() {
-    // 1. Buscador de Empleado por DNI
+    // 1. Llenar Datalist de Empleados
+    const datalistPersonal = document.getElementById('datalistPersonal');
+    if(datalistPersonal) {
+      datalistPersonal.innerHTML = '';
+      this.personal.filter(p => String(p.Estado).toUpperCase() === 'ACTIVO').forEach(p => {
+        const dni = p['ID Empleado'] || p.ID_Empleado;
+        // El value será el DNI para que se guarde, pero el usuario verá el nombre
+        datalistPersonal.innerHTML += `<option value="${dni}">${p.Nombre}</option>`;
+      });
+    }
+
+    // 2. Llenar Datalist de Inventario
+    const datalistInventario = document.getElementById('datalistInventario');
+    if(datalistInventario) {
+      datalistInventario.innerHTML = '';
+      this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0).forEach(item => {
+        // El value será el SKU, pero se verá el detalle
+        datalistInventario.innerHTML += `<option value="${item.ID_SKU}">${item.Tipo} ${item.Talla} ${item.Color} (Stock: ${item.Stock_Actual})</option>`;
+      });
+    }
+
+    // 3. Detectar cuando eligen a un empleado
     const inputDni = document.getElementById('searchDni');
-    inputDni.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const val = inputDni.value.trim();
-        if(!val) return;
-        
-        // Buscar en el array de personal
-        const emp = this.personal.find(p => String(p['ID Empleado'] || p.ID_Empleado) === val);
-        
-        if (emp) {
-          document.getElementById('moveDni').value = val;
-          document.getElementById('moveName').value = emp.Nombre;
-          inputDni.style.borderColor = 'var(--neon-green)'; // Feedback visual
-        } else {
-          document.getElementById('moveDni').value = '';
-          document.getElementById('moveName').value = '';
-          alert("⚠️ DNI no encontrado en el directorio.");
-          inputDni.style.borderColor = 'var(--danger)';
-        }
+    inputDni.addEventListener('input', (e) => {
+      const val = e.target.value;
+      // Buscar si el valor ingresado coincide con un DNI
+      const emp = this.personal.find(p => String(p['ID Empleado'] || p.ID_Empleado) === val);
+      if (emp) {
+        document.getElementById('moveDni').value = val;
+        document.getElementById('moveName').value = emp.Nombre;
+        inputDni.style.borderColor = 'var(--neon-green)'; 
+      } else {
+        // Si borra el campo
+        document.getElementById('moveDni').value = '';
+        document.getElementById('moveName').value = '';
+        inputDni.style.borderColor = 'var(--border-color)';
       }
     });
 
-    // 2. Buscador de Prenda por SKU
+    // 4. Detectar cuando eligen una prenda
     const inputSku = document.getElementById('searchSku');
-    inputSku.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const val = inputSku.value.trim().toUpperCase();
-        if(!val) return;
-        
-        // Buscar en el inventario
-        const item = this.inventory.find(i => i.ID_SKU === val && i.Estado !== 'ELIMINADO');
-        
-        if (item) {
-          if (Number(item.Stock_Actual) <= 0) {
-             alert("⚠️ Esta prenda no tiene stock disponible.");
-             inputSku.style.borderColor = 'var(--danger)';
-             return;
-          }
-          document.getElementById('moveSku').value = item.ID_SKU;
-          document.getElementById('moveItemDetail').value = `${item.Tipo} ${item.Talla} ${item.Color} (Stock: ${item.Stock_Actual})`;
-          inputSku.style.borderColor = 'var(--neon-green)';
-        } else {
-          document.getElementById('moveSku').value = '';
-          document.getElementById('moveItemDetail').value = '';
-          alert("⚠️ SKU no encontrado o prenda eliminada.");
-          inputSku.style.borderColor = 'var(--danger)';
-        }
+    inputSku.addEventListener('input', (e) => {
+      const val = e.target.value.toUpperCase();
+      // Buscar si el valor ingresado coincide con el SKU
+      const item = this.inventory.find(i => i.ID_SKU === val && i.Estado !== 'ELIMINADO');
+      if (item) {
+        document.getElementById('moveSku').value = item.ID_SKU;
+        document.getElementById('moveItemDetail').value = `${item.Tipo} ${item.Talla} ${item.Color} (Stock: ${item.Stock_Actual})`;
+        inputSku.style.borderColor = 'var(--neon-green)';
+      } else {
+        document.getElementById('moveSku').value = '';
+        document.getElementById('moveItemDetail').value = '';
+        inputSku.style.borderColor = 'var(--border-color)';
       }
     });
   }
@@ -93,6 +96,7 @@ class AppController {
   async loadPersonal() {
     this.personal = await apiService.getPersonal();
     this.renderPersonal();
+    this.setupQuickSearch(); // Volver a llenar la lista si hay cambios
   }
 
   renderPersonal(filterText = '') {
@@ -532,8 +536,8 @@ class AppController {
     const sku = document.getElementById('moveSku').value;
     const cantidad = parseInt(document.getElementById('moveQty').value);
 
-    if (!dni || !nombreCompleto) return alert("Debe buscar un DNI válido primero.");
-    if (!sku) return alert("Debe buscar una prenda por SKU válida primero.");
+    if (!dni || !nombreCompleto) return alert("Debe seleccionar un empleado de la lista.");
+    if (!sku) return alert("Debe seleccionar una prenda de la lista.");
     if (cantidad < 1) return alert("La cantidad debe ser mayor a 0.");
 
     const nameParts = nombreCompleto.split(' ');

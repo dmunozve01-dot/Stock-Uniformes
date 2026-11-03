@@ -65,12 +65,15 @@
       <div class="card" style="margin-bottom: 25px;">
         <h3><i class="fa-solid fa-hand-holding"></i> Registrar Entrega a Empleado</h3>
         
-        <!-- NUEVO DISEÑO: Inputs de búsqueda rápida por DNI y SKU -->
+        <!-- NUEVO DISEÑO CON DATALIST -->
         <div class="form-grid">
           <div class="form-group" style="flex: 2;">
-            <label>Buscar Empleado por DNI</label>
-            <input type="text" id="searchDni" placeholder="Escriba el DNI y presione Enter..." autocomplete="off">
-            <input type="hidden" id="moveDni"> <!-- Guarda el DNI real -->
+            <label>Buscar Empleado</label>
+            <input type="text" id="searchDni" list="datalistPersonal" placeholder="Escriba el DNI o Nombre..." autocomplete="off">
+            <!-- Aquí se cargarán las opciones del personal -->
+            <datalist id="datalistPersonal"></datalist>
+            <!-- Inputs ocultos que guardan los datos reales -->
+            <input type="hidden" id="moveDni">
           </div>
           <div class="form-group" style="flex: 2;">
             <label>Nombre del Empleado</label>
@@ -80,9 +83,12 @@
 
         <div class="form-grid" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
           <div class="form-group" style="flex: 2;">
-            <label>Buscar Prenda por SKU</label>
-            <input type="text" id="searchSku" placeholder="Escriba el SKU y presione Enter..." autocomplete="off">
-            <input type="hidden" id="moveSku"> <!-- Guarda el SKU real -->
+            <label>Buscar Prenda</label>
+            <input type="text" id="searchSku" list="datalistInventario" placeholder="Escriba el SKU o Prenda..." autocomplete="off">
+            <!-- Aquí se cargarán las opciones del inventario -->
+            <datalist id="datalistInventario"></datalist>
+            <!-- Inputs ocultos que guardan los datos reales -->
+            <input type="hidden" id="moveSku">
           </div>
           <div class="form-group" style="flex: 2;">
             <label>Detalle de la Prenda</label>
