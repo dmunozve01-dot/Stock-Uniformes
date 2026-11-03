@@ -26,59 +26,52 @@ class AppController {
   async loadData() {
     this.inventory = await apiService.getInventory();
     this.renderInventory();
-    this.setupQuickSearch(); // Llenar datalist de inventario
+    this.setupQuickSearch(); 
 
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
   }
 
-  // --- AUTOCOMPLETADO POR DATALIST ---
+  // --- AUTOCOMPLETADO ---
   setupQuickSearch() {
-    // 1. Llenar Datalist de Empleados
     const datalistPersonal = document.getElementById('datalistPersonal');
     if(datalistPersonal) {
       datalistPersonal.innerHTML = '';
       this.personal.filter(p => String(p.Estado).toUpperCase() === 'ACTIVO').forEach(p => {
         const dni = p['ID Empleado'] || p.ID_Empleado;
-        // El value será el DNI para que se guarde, pero el usuario verá el nombre
         datalistPersonal.innerHTML += `<option value="${dni}">${p.Nombre}</option>`;
       });
     }
 
-    // 2. Llenar Datalist de Inventario
     const datalistInventario = document.getElementById('datalistInventario');
     if(datalistInventario) {
       datalistInventario.innerHTML = '';
       this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0).forEach(item => {
-        // El value será el SKU, pero se verá el detalle
         datalistInventario.innerHTML += `<option value="${item.ID_SKU}">${item.Tipo} ${item.Talla} ${item.Color} (Stock: ${item.Stock_Actual})</option>`;
       });
     }
 
-    // 3. Detectar cuando eligen a un empleado
+    // Al seleccionar Empleado
     const inputDni = document.getElementById('searchDni');
     inputDni.addEventListener('input', (e) => {
       const val = e.target.value;
-      // Buscar si el valor ingresado coincide con un DNI
       const emp = this.personal.find(p => String(p['ID Empleado'] || p.ID_Empleado) === val);
       if (emp) {
         document.getElementById('moveDni').value = val;
         document.getElementById('moveName').value = emp.Nombre;
         inputDni.style.borderColor = 'var(--neon-green)'; 
       } else {
-        // Si borra el campo
         document.getElementById('moveDni').value = '';
         document.getElementById('moveName').value = '';
         inputDni.style.borderColor = 'var(--border-color)';
       }
     });
 
-    // 4. Detectar cuando eligen una prenda
+    // Al seleccionar Prenda
     const inputSku = document.getElementById('searchSku');
     inputSku.addEventListener('input', (e) => {
       const val = e.target.value.toUpperCase();
-      // Buscar si el valor ingresado coincide con el SKU
       const item = this.inventory.find(i => i.ID_SKU === val && i.Estado !== 'ELIMINADO');
       if (item) {
         document.getElementById('moveSku').value = item.ID_SKU;
@@ -96,7 +89,7 @@ class AppController {
   async loadPersonal() {
     this.personal = await apiService.getPersonal();
     this.renderPersonal();
-    this.setupQuickSearch(); // Volver a llenar la lista si hay cambios
+    this.setupQuickSearch(); 
   }
 
   renderPersonal(filterText = '') {
@@ -153,7 +146,10 @@ class AppController {
     document.getElementById('persPosition').value = '';
     document.getElementById('persClient').value = '';
     document.getElementById('persShift').value = 'DÍA';
-    document.getElementById('modalPersonal').classList.remove('hidden');
+    
+    const modal = document.getElementById('modalPersonal');
+    modal.classList.remove('hidden');
+    window.scrollTo(0, 0); // Forzar scroll arriba para centrar
   }
 
   openEditPersonal(id) {
@@ -180,7 +176,10 @@ class AppController {
     document.getElementById('persPosition').value = p['Posición'] || p.Posicion || '';
     document.getElementById('persClient').value = p.Cliente || '';
     document.getElementById('persShift').value = p.Turno || 'DÍA';
-    document.getElementById('modalPersonal').classList.remove('hidden');
+    
+    const modal = document.getElementById('modalPersonal');
+    modal.classList.remove('hidden');
+    window.scrollTo(0, 0);
   }
 
   async savePersonal() {
@@ -458,6 +457,7 @@ class AppController {
     document.getElementById('skuLocation').value = '';
     document.getElementById('skuStock').value = '0';
     document.getElementById('modalSku').classList.remove('hidden');
+    window.scrollTo(0, 0);
   }
 
   openEditModal(skuId) {
@@ -473,6 +473,7 @@ class AppController {
     document.getElementById('skuLocation').value = item.Ubicacion;
     document.getElementById('skuStock').value = item.Stock_Actual;
     document.getElementById('modalSku').classList.remove('hidden');
+    window.scrollTo(0, 0);
   }
 
   async saveSku() {
@@ -563,7 +564,6 @@ class AppController {
     if (success) {
       alert("✅ Entrega registrada y stock descontado.");
       
-      // Limpiar campos
       document.getElementById('searchDni').value = '';
       document.getElementById('moveDni').value = '';
       document.getElementById('moveName').value = '';

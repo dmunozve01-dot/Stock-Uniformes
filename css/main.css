@@ -134,30 +134,32 @@ html, body { height: 100%; width: 100%; background-color: var(--bg-body); color:
 .btn-restore:hover { background: rgba(57, 255, 20, 0.2); box-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
 
 /* =========================================
-   MODAL CENTRADO Y OSCURO
+   MODAL CENTRADO Y OSCURO (CORREGIDO)
    ========================================= */
-#modalSku {
+#modalSku, #modalPersonal {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(0, 0, 0, 0.8) !important;
+  background: rgba(0, 0, 0, 0.85) !important;
   backdrop-filter: blur(5px) !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   z-index: 9999 !important;
+  padding: 20px !important;
 }
 
-/* Si el modal tiene la clase hidden, se oculta */
-#modalSku.hidden {
+#modalSku.hidden, #modalPersonal.hidden {
   display: none !important;
 }
 
-/* Forzar que la tarjeta dentro del modal no sea transparente */
-#modalSku .card {
+#modalSku .card, #modalPersonal .card {
   background: var(--bg-card) !important;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
   border: 1px solid var(--border-color) !important;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
