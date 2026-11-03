@@ -26,14 +26,75 @@ class AppController {
   async loadData() {
     this.inventory = await apiService.getInventory();
     this.renderInventory();
-    this.setupQuickSearch(); 
-
+    
     this.moves = await apiService.getMoves();
     this.renderMoves();
     this.renderTrash();
+    
+    this.updateDashboard(); // Actualizar los números del dashboard
+    this.setupQuickSearch(); 
   }
 
-  // --- AUTOCOMPLETADO ---
+  // --- LÓGICA DEL DASHBOARD ---
+  updateDashboard() {
+    // 1. Total de Prendas (Suma de Stock)
+    let totalPrendas = 0;
+    this.inventory.filter(i => i.Estado !== 'ELIMINADO').forEach(item => {
+      totalPrendas += Number(item.Stock_Actual) || 0;
+    });
+    document.getElementById('kpiTotalPrendas').innerText = totalPrendas;
+
+    // 2. Total de SKUs (Cantidad de filas activas)
+    const totalSkus = this.inventory.filter(i => i.Estado !== 'ELIMINADO').length;
+    document.getElementById('kpiTotalSkus').innerText = totalSkus;
+
+    // 3. Entregas del Mes (Filtrar por fecha)
+    const hoy = new Date();
+    const mesActual = hoy.getMonth();
+    const anioActual = hoy.getFullYear();
+    
+    let entregasMes = 0;
+    this.moves.filter(m => m.Estado === 'ACTIVO' && m.Tipo === 'ENTREGA').forEach(m => {
+      const fechaMov = new Date(m.Fecha);
+      if (fechaMov.getMonth() === mesActual && fechaMov.getFullYear() === anioActual) {
+        entregasMes += Number(m.Cantidad) || 0;
+      }
+    });
+    document.getElementById('kpiEntregas').innerText = entregasMes;
+
+    // 4. Personal Activo
+    const personalActivo = this.personal.filter(p => String(p.Estado).toUpperCase() === 'ACTIVO').length;
+    document.getElementById('kpiPersonal').innerText = personalActivo;
+
+    // 5. Llenar la tabla de Últimos Movimientos (solo los 5 más recientes)
+    const tbody = document.querySelector('#tableDashboardMoves tbody');
+    tbody.innerHTML = '';
+    const ultimosMoves = this.moves.slice(0, 5); // Los primeros 5 porque ya vienen en orden inverso
+
+    if (ultimosMoves.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay actividad reciente.</td></tr>';
+      return;
+    }
+
+    ultimosMoves.forEach(m => {
+      const fecha = new Date(m.Fecha).toLocaleString('es-PE');
+      const color = m.Tipo === 'ENTREGA' ? 'var(--danger)' : 'var(--neon-green)';
+      const signo = m.Tipo === 'ENTREGA' ? '-' : '+';
+      
+      tbody.innerHTML += `
+        <tr>
+          <td style="font-size:0.8rem; font-weight:bold;">${m.ID_Movimiento}</td>
+          <td style="font-size:0.8rem; color:var(--text-gray);">${fecha}</td>
+          <td style="color:${color}; font-weight:bold;">${m.Tipo}</td>
+          <td>${m.ID_SKU}</td>
+          <td><b style="color:${color};">${signo}${m.Cantidad}</b></td>
+          <td>${m.Nombre} ${m.Apellido}</td>
+        </tr>
+      `;
+    });
+  }
+
+  // --- AUTOCOMPLETADO CON UBICACIÓN ---
   setupQuickSearch() {
     const datalistPersonal = document.getElementById('datalistPersonal');
     if(datalistPersonal) {
@@ -48,11 +109,11 @@ class AppController {
     if(datalistInventario) {
       datalistInventario.innerHTML = '';
       this.inventory.filter(i => i.Estado !== 'ELIMINADO' && Number(i.Stock_Actual) > 0).forEach(item => {
-        datalistInventario.innerHTML += `<option value="${item.ID_SKU}">${item.Tipo} ${item.Talla} ${item.Color} (Stock: ${item.Stock_Actual})</option>`;
+        // Mostramos la ubicación en la lista
+        datalistInventario.innerHTML += `<option value="${item.ID_SKU}">${item.Tipo} ${item.Talla} ${item.Color} [${item.Ubicacion}] (Stock: ${item.Stock_Actual})</option>`;
       });
     }
 
-    // Al seleccionar Empleado
     const inputDni = document.getElementById('searchDni');
     inputDni.addEventListener('input', (e) => {
       const val = e.target.value;
@@ -68,14 +129,13 @@ class AppController {
       }
     });
 
-    // Al seleccionar Prenda
     const inputSku = document.getElementById('searchSku');
     inputSku.addEventListener('input', (e) => {
       const val = e.target.value.toUpperCase();
       const item = this.inventory.find(i => i.ID_SKU === val && i.Estado !== 'ELIMINADO');
       if (item) {
         document.getElementById('moveSku').value = item.ID_SKU;
-        document.getElementById('moveItemDetail').value = `${item.Tipo} ${item.Talla} ${item.Color} (Stock: ${item.Stock_Actual})`;
+        document.getElementById('moveItemDetail').value = `${item.Tipo} ${item.Talla} ${item.Color} - Ubic: ${item.Ubicacion} (Stock: ${item.Stock_Actual})`;
         inputSku.style.borderColor = 'var(--neon-green)';
       } else {
         document.getElementById('moveSku').value = '';
@@ -89,6 +149,7 @@ class AppController {
   async loadPersonal() {
     this.personal = await apiService.getPersonal();
     this.renderPersonal();
+    this.updateDashboard(); // Actualizar KPI de personal
     this.setupQuickSearch(); 
   }
 
@@ -149,7 +210,7 @@ class AppController {
     
     const modal = document.getElementById('modalPersonal');
     modal.classList.remove('hidden');
-    window.scrollTo(0, 0); // Forzar scroll arriba para centrar
+    window.scrollTo(0, 0);
   }
 
   openEditPersonal(id) {
@@ -386,6 +447,7 @@ class AppController {
   }
 
   setupListeners() {
+    document.getElementById('btnTabDashboard').addEventListener('click', () => this.switchTab('panelDashboard', 'btnTabDashboard'));
     document.getElementById('btnTabInv').addEventListener('click', () => this.switchTab('panelInv', 'btnTabInv'));
     document.getElementById('btnTabMoves').addEventListener('click', () => this.switchTab('panelMoves', 'btnTabMoves'));
     document.getElementById('btnTabTrash').addEventListener('click', () => this.switchTab('panelTrash', 'btnTabTrash'));
@@ -488,6 +550,7 @@ class AppController {
     const btn = document.getElementById('btnSaveSku');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+    
     let success = false;
     if (this.editingSku) {
       item.id_sku = this.editingSku;
@@ -495,6 +558,7 @@ class AppController {
     } else {
       success = await apiService.createInventory(item);
     }
+    
     if (success) {
       alert(this.editingSku ? "✅ Prenda actualizada." : "✅ Prenda registrada.");
       document.getElementById('modalSku').classList.add('hidden');

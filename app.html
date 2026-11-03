@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Grupo ANC</title>
+  <title>SmartWarehouse - Grupo ANC</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="./css/main.css">
 </head>
@@ -20,15 +20,71 @@
     </div>
 
     <div class="mode-switch">
-      <button id="btnTabInv" class="btn-tab active"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
+      <button id="btnTabDashboard" class="btn-tab active"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+      <button id="btnTabInv" class="btn-tab"><i class="fa-solid fa-boxes-stacked"></i> Inventario</button>
       <button id="btnTabMoves" class="btn-tab"><i class="fa-solid fa-hand-holding"></i> Movimientos</button>
       <button id="btnTabPersonal" class="btn-tab hidden admin-tab"><i class="fa-solid fa-user-tie"></i> Personal</button>
       <button id="btnTabTrash" class="btn-tab"><i class="fa-solid fa-trash-can"></i> Papelera</button>
       <button id="btnTabUsers" class="btn-tab hidden admin-tab"><i class="fa-solid fa-users"></i> Usuarios</button>
     </div>
 
-    <!-- PANEL 1: INVENTARIO -->
-    <section id="panelInv" class="panel active">
+    <!-- PANEL DASHBOARD -->
+    <section id="panelDashboard" class="panel active">
+      
+      <!-- Tarjetas KPI -->
+      <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+        
+        <div class="card kpi-card" style="border-top: 4px solid var(--neon-cyan);">
+          <div class="kpi-icon"><i class="fa-solid fa-shirt"></i></div>
+          <div class="kpi-info">
+            <h4>Total Prendas</h4>
+            <h2 id="kpiTotalPrendas">0</h2>
+          </div>
+        </div>
+
+        <div class="card kpi-card" style="border-top: 4px solid var(--neon-green);">
+          <div class="kpi-icon"><i class="fa-solid fa-barcode"></i></div>
+          <div class="kpi-info">
+            <h4>Total SKUs</h4>
+            <h2 id="kpiTotalSkus">0</h2>
+          </div>
+        </div>
+
+        <div class="card kpi-card" style="border-top: 4px solid var(--danger);">
+          <div class="kpi-icon"><i class="fa-solid fa-hand-holding"></i></div>
+          <div class="kpi-info">
+            <h4>Entregas del Mes</h4>
+            <h2 id="kpiEntregas">0</h2>
+          </div>
+        </div>
+
+        <div class="card kpi-card" style="border-top: 4px solid #a855f7;">
+          <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="kpi-info">
+            <h4>Personal Activo</h4>
+            <h2 id="kpiPersonal">0</h2>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Últimos Movimientos -->
+      <div class="card">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Últimos Movimientos</h3>
+        <div class="table-responsive">
+          <table id="tableDashboardMoves" class="data-table">
+            <thead>
+              <tr><th>ID Mov.</th><th>Fecha</th><th>Tipo</th><th>SKU</th><th>Cant.</th><th>Empleado</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PANEL INVENTARIO -->
+    <section id="panelInv" class="panel hidden">
       <div id="adminTools" class="hidden" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
         <button class="btn btn-primary" id="btnNewSku" style="flex: 1; min-width: 200px;">
           <i class="fa-solid fa-plus"></i> Registrar Prenda Nueva
@@ -60,7 +116,7 @@
       </div>
     </section>
 
-    <!-- PANEL 2: MOVIMIENTOS (ENTREGAS) -->
+    <!-- PANEL MOVIMIENTOS -->
     <section id="panelMoves" class="panel hidden">
       <div class="card" style="margin-bottom: 25px;">
         <h3><i class="fa-solid fa-hand-holding"></i> Registrar Entrega a Empleado</h3>
@@ -80,7 +136,7 @@
 
         <div class="form-grid" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
           <div class="form-group" style="flex: 2;">
-            <label>Buscar Prenda (SKU)</label>
+            <label>Buscar Prenda (SKU / Ubicación)</label>
             <input type="text" id="searchSku" list="datalistInventario" placeholder="Escriba el SKU..." autocomplete="off">
             <datalist id="datalistInventario"></datalist>
             <input type="hidden" id="moveSku">
@@ -113,7 +169,7 @@
       </div>
     </section>
 
-    <!-- PANEL 3: PERSONAL -->
+    <!-- PANEL PERSONAL -->
     <section id="panelPersonal" class="panel hidden">
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
@@ -140,7 +196,7 @@
       </div>
     </section>
 
-    <!-- PANEL 4: PAPELERA -->
+    <!-- PANEL PAPELERA -->
     <section id="panelTrash" class="panel hidden">
       <div class="card">
         <h3><i class="fa-solid fa-trash-can"></i> Movimientos y Prendas Eliminadas</h3>
@@ -155,7 +211,7 @@
       </div>
     </section>
 
-    <!-- PANEL 5: USUARIOS -->
+    <!-- PANEL USUARIOS -->
     <section id="panelUsers" class="panel hidden">
       <div class="card">
         <h3><i class="fa-solid fa-users-gear"></i> Gestión de Usuarios</h3>
@@ -172,7 +228,7 @@
 
   </div>
 
-  <!-- Modal para Crear/Editar SKU -->
+  <!-- Modal SKU -->
   <div id="modalSku" class="hidden modal-overlay">
     <div class="card" style="width:90%; max-width:500px;">
       <h3 id="modalSkuTitle">Registrar Prenda Nueva</h3>
@@ -193,32 +249,17 @@
     </div>
   </div>
 
-  <!-- Modal para Crear/Editar Personal -->
+  <!-- Modal Personal -->
   <div id="modalPersonal" class="hidden modal-overlay">
     <div class="card" style="width:90%; max-width:600px;">
       <h3 id="modalPersonalTitle">Registrar Nuevo Ingreso</h3>
       
       <div class="form-grid">
-        <div class="form-group">
-          <label>ID Empleado (DNI)</label>
-          <input type="text" id="persId" placeholder="Ej: 71004570" maxlength="8">
-        </div>
-        <div class="form-group">
-          <label>Nombre Completo</label>
-          <input type="text" id="persName" placeholder="Ej: KEVIN JESUS BURGOS QUIROZ">
-        </div>
-        <div class="form-group">
-          <label>Fecha Nacimiento</label>
-          <input type="date" id="persDate">
-        </div>
-        <div class="form-group">
-          <label>Posición</label>
-          <input type="text" id="persPosition" placeholder="Ej: ASISTENTE DE ALMACEN">
-        </div>
-        <div class="form-group">
-          <label>Cliente</label>
-          <input type="text" id="persClient" placeholder="Ej: CD OSLO TRUJILLO">
-        </div>
+        <div class="form-group"><label>ID Empleado (DNI)</label><input type="text" id="persId" placeholder="Ej: 71004570" maxlength="8"></div>
+        <div class="form-group"><label>Nombre Completo</label><input type="text" id="persName" placeholder="Ej: KEVIN JESUS BURGOS QUIROZ"></div>
+        <div class="form-group"><label>Fecha Nacimiento</label><input type="date" id="persDate"></div>
+        <div class="form-group"><label>Posición</label><input type="text" id="persPosition" placeholder="Ej: ASISTENTE DE ALMACEN"></div>
+        <div class="form-group"><label>Cliente</label><input type="text" id="persClient" placeholder="Ej: CD OSLO TRUJILLO"></div>
         <div class="form-group">
           <label>Turno</label>
           <select id="persShift">
