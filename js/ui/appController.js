@@ -37,7 +37,7 @@ class AppController {
   async loadPersonal() {
     this.personal = await apiService.getPersonal();
     this.renderPersonal();
-    this.populateEmployeeDatalist(); 
+    this.populateEmployeeSelect(); 
   }
 
   renderPersonal(filterText = '') {
@@ -48,11 +48,13 @@ class AppController {
     let filtered = this.personal;
     if (filterText) {
       const text = filterText.toLowerCase();
-      filtered = filtered.filter(p => 
-        String(p.ID_Empleado).includes(text) || 
-        String(p.Nombre).toLowerCase().includes(text) ||
-        String(p.Cliente).toLowerCase().includes(text)
-      );
+      filtered = filtered.filter(p => {
+        // Leer columnas con o sin espacios/tildes según el Excel
+        const dni = String(p['ID Empleado'] || p.ID_Empleado || '').toLowerCase();
+        const nombre = String(p.Nombre || '').toLowerCase();
+        const cliente = String(p.Cliente || '').toLowerCase();
+        return dni.includes(text) || nombre.includes(text) || cliente.includes(text);
+      });
     }
 
     if (filtered.length === 0) {
@@ -63,54 +65,35 @@ class AppController {
     filtered.forEach(p => {
       const adminActions = this.currentUser.role === 'ADMIN' ? `
         <td class="admin-col" style="display: flex; gap: 5px;">
-          <button class="btn-restore" onclick="app.openEditPersonal('${p.ID_Empleado}')" title="Editar">
+          <button class="btn-restore" onclick="app.openEditPersonal('${p['ID Empleado'] || p.ID_Empleado}')" title="Editar">
             <i class="fa-solid fa-pen"></i>
           </button>
         </td>
       ` : '';
 
+      // Arreglado para leer las columnas con o sin guiones bajos
       tbody.innerHTML += `
         <tr>
-          <td><b>${p.ID_Empleado}</b></td>
+          <td><b>${p['ID Empleado'] || p.ID_Empleado}</b></td>
           <td>${p.Nombre}</td>
-          <td>${p.Posicion}</td>
-          <td>${p.Cliente}</td>
-          <td>${p.Turno}</td>
-          <td style="color:var(--neon-green); font-weight:bold;">${p.Estado}</td>
+          <td>${p['Posición'] || p.Posicion || '-'}</td>
+          <td>${p.Cliente || '-'}</td>
+          <td>${p.Turno || '-'}</td>
+          <td style="color:var(--neon-green); font-weight:bold;">${p.Estado || 'ACTIVO'}</td>
           ${adminActions}
         </tr>
       `;
     });
   }
 
-  populateEmployeeDatalist() {
-    const datalist = document.getElementById('employeeList');
-    if(!datalist) return;
+  populateEmployeeSelect() {
+    const select = document.getElementById('moveEmployeeSelect');
+    if(!select) return;
     
-    datalist.innerHTML = '';
-    this.personal.filter(p => p.Estado === 'ACTIVO').forEach(p => {
-      datalist.innerHTML += `<option value="${p.ID_Empleado}">${p.Nombre}</option>`;
-    });
-
-    const searchInput = document.getElementById('searchEmployee');
-    // Remover listener previo para evitar duplicados
-    const newSearchInput = searchInput.cloneNode(true);
-    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-    
-    newSearchInput.addEventListener('input', (e) => {
-      const val = e.target.value.trim();
-      const empleado = this.personal.find(p => 
-        String(p.ID_Empleado) === val || 
-        String(p.Nombre).toLowerCase() === val.toLowerCase()
-      );
-
-      if (empleado) {
-        document.getElementById('moveDni').value = empleado.ID_Empleado;
-        document.getElementById('moveName').value = empleado.Nombre;
-      } else {
-        document.getElementById('moveDni').value = '';
-        document.getElementById('moveName').value = '';
-      }
+    select.innerHTML = '<option value="">Seleccione un empleado...</option>';
+    this.personal.filter(p => String(p.Estado).toUpperCase() === 'ACTIVO').forEach(p => {
+      const dni = p['ID Empleado'] || p.ID_Empleado;
+      select.innerHTML += `<option value="${dni}">${p.Nombre} (${dni})</option>`;
     });
   }
 
@@ -128,23 +111,29 @@ class AppController {
   }
 
   openEditPersonal(id) {
-    const p = this.personal.find(item => String(item.ID_Empleado) === String(id));
+    const p = this.personal.find(item => String(item['ID Empleado'] || item.ID_Empleado) === String(id));
     if (!p) return;
 
     this.editingPersonal = id;
     document.getElementById('modalPersonalTitle').innerText = "Editar Personal";
-    document.getElementById('persId').value = p.ID_Empleado;
+    document.getElementById('persId').value = p['ID Empleado'] || p.ID_Empleado;
     document.getElementById('persId').disabled = true;
     document.getElementById('persName').value = p.Nombre;
-    if (p.Fecha_Nacimiento) {
-      const d = new Date(p.Fecha_Nacimiento);
-      document.getElementById('persDate').value = d.toISOString().split('T')[0];
+    
+    const dateStr = p['Fecha Nacimiento'] || p.Fecha_Nacimiento;
+    if (dateStr) {
+      try { 
+        document.getElementById('persDate').value = new Date(dateStr).toISOString().split('T')[0]; 
+      } catch(e) { 
+        document.getElementById('persDate').value = ''; 
+      }
     } else {
       document.getElementById('persDate').value = '';
     }
-    document.getElementById('persPosition').value = p.Posicion;
-    document.getElementById('persClient').value = p.Cliente;
-    document.getElementById('persShift').value = p.Turno;
+    
+    document.getElementById('persPosition').value = p['Posición'] || p.Posicion || '';
+    document.getElementById('persClient').value = p.Cliente || '';
+    document.getElementById('persShift').value = p.Turno || 'DÍA';
     document.getElementById('modalPersonal').classList.remove('hidden');
   }
 
@@ -176,14 +165,14 @@ class AppController {
     if (success) {
       alert(this.editingPersonal ? "✅ Personal actualizado." : "✅ Ingreso registrado.");
       document.getElementById('modalPersonal').classList.add('hidden');
-      await this.loadPersonal();
+      await this.loadPersonal(); 
     } else {
       alert("❌ Error al guardar.");
     }
     btn.disabled = false;
   }
-  // --- FIN LÓGICA PERSONAL ---
 
+  // --- LÓGICA DE INVENTARIO ---
   renderInventory(filterText = '') {
     const tbody = document.querySelector('#tableInventory tbody');
     tbody.innerHTML = '';
@@ -318,6 +307,7 @@ class AppController {
     });
   }
 
+  // --- LÓGICA DE USUARIOS ---
   async loadUsers() {
     const tbody = document.querySelector('#tableUsers tbody');
     tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Cargando usuarios...</td></tr>';
@@ -409,7 +399,9 @@ class AppController {
       p.style.display = 'none';
       p.classList.remove('active');
     });
-    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.btn-tab').forEach(b => {
+      b.classList.remove('active');
+    });
     const panel = document.getElementById(panelId);
     if(panel) {
       panel.style.display = 'block';
@@ -502,13 +494,15 @@ class AppController {
   }
 
   async saveMove() {
+    const selectEmp = document.getElementById('moveEmployeeSelect');
+    const dni = selectEmp.value;
+    const nombreCompleto = selectEmp.options[selectEmp.selectedIndex].text.split(' (')[0]; // Extrae solo el nombre
+    
     const sku = document.getElementById('moveSkuSelect').value;
     const cantidad = parseInt(document.getElementById('moveQty').value);
-    const dni = document.getElementById('moveDni').value;
-    const nombreCompleto = document.getElementById('moveName').value;
 
     if (!sku || cantidad < 1) return alert("Seleccione un SKU y cantidad válida.");
-    if (!dni || !nombreCompleto) return alert("Debe buscar y seleccionar a un empleado válido.");
+    if (!dni) return alert("Debe seleccionar a un empleado de la lista.");
 
     const nameParts = nombreCompleto.split(' ');
     const nombre = nameParts[0];
@@ -531,11 +525,9 @@ class AppController {
     const success = await apiService.registerMove(moveData);
     
     if (success) {
-      alert("✅ Entrega registrada.");
+      alert("✅ Entrega registrada y stock descontado.");
       document.getElementById('moveQty').value = '1';
-      document.getElementById('searchEmployee').value = '';
-      document.getElementById('moveDni').value = '';
-      document.getElementById('moveName').value = '';
+      document.getElementById('moveEmployeeSelect').value = '';
       
       setTimeout(async () => { 
         await this.loadData(); 
@@ -623,6 +615,7 @@ class AppController {
   }
 }
 
+// Iniciar la app
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('tableInventory')) {

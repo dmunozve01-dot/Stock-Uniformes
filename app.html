@@ -64,38 +64,30 @@
     <section id="panelMoves" class="panel hidden">
       <div class="card" style="margin-bottom: 25px;">
         <h3><i class="fa-solid fa-hand-holding"></i> Registrar Entrega a Empleado</h3>
+        
+        <!-- Formulario mejorado: Select en lugar de input para evitar errores -->
         <div class="form-grid">
-          <div class="form-group">
-            <label>Seleccionar Prenda (SKU)</label>
+          <div class="form-group" style="flex: 2;">
+            <label>Empleado que recibe</label>
+            <select id="moveEmployeeSelect">
+              <option value="">Seleccione un empleado...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top: 15px;">
+          <div class="form-group" style="flex: 2;">
+            <label>Prenda a Entregar (SKU)</label>
             <select id="moveSkuSelect"></select>
           </div>
-          <div class="form-group" style="max-width: 120px;">
+          <div class="form-group" style="max-width: 150px;">
             <label>Cantidad</label>
             <input type="number" id="moveQty" value="1" min="1">
           </div>
         </div>
-        
-        <div id="deliveryFields" class="form-grid" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-          
-          <div class="form-group" style="flex: 2;">
-            <label>Buscar Empleado (DNI o Nombre)</label>
-            <input type="text" id="searchEmployee" list="employeeList" placeholder="Escribe el DNI o Nombre..." autocomplete="off">
-            <datalist id="employeeList"></datalist>
-          </div>
 
-          <div class="form-group">
-            <label>DNI Empleado</label>
-            <input type="text" id="moveDni" placeholder="Autocompletado" readonly style="background:#18181b; color:#a1a1aa;">
-          </div>
-          <div class="form-group" style="flex: 2;">
-            <label>Nombre Completo</label>
-            <input type="text" id="moveName" placeholder="Autocompletado" readonly style="background:#18181b; color:#a1a1aa;">
-          </div>
-          
-        </div>
-
-        <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 20px; width: 100%; max-width: 250px;">
-          <i class="fa-solid fa-check"></i> Entregar y Descontar
+        <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 25px; width: 100%; max-width: 300px;">
+          <i class="fa-solid fa-check"></i> Registrar Entrega y Descontar
         </button>
       </div>
 
@@ -114,17 +106,19 @@
 
     <!-- PANEL 3: PERSONAL -->
     <section id="panelPersonal" class="panel hidden">
-      <div id="personalTools" class="hidden" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
-        <button class="btn btn-primary" id="btnNewPersonal" style="flex: 1; min-width: 200px;">
-          <i class="fa-solid fa-user-plus"></i> Registrar Nuevo Ingreso
-        </button>
-      </div>
-
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
           <h3 style="margin: 0; border:none; padding:0;"><i class="fa-solid fa-users"></i> Directorio de Personal</h3>
-          <input type="text" id="searchPersonal" class="search-input" placeholder="🔍 Buscar por DNI o Nombre...">
+          
+          <div style="display: flex; gap: 10px; align-items: center; width: 100%; max-width: 500px;">
+            <!-- Botón para agregar personal -->
+            <button class="btn btn-primary" id="btnNewPersonal" style="white-space: nowrap;">
+              <i class="fa-solid fa-user-plus"></i> Agregar Personal
+            </button>
+            <input type="text" id="searchPersonal" class="search-input" placeholder="🔍 Buscar por DNI o Nombre..." style="flex: 1;">
+          </div>
         </div>
+
         <div class="table-responsive">
           <table id="tablePersonal" class="data-table">
             <thead>
