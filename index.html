@@ -23,6 +23,38 @@
       <input type="checkbox" id="rememberMe">
       <label for="rememberMe">Mantener sesión iniciada</label>
     </div>
+
+    <!-- BOTÓN DE SOLICITAR ACCESO -->
+    <div style="margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px;">
+      <p style="font-size: 0.85rem; color: var(--text-gray); margin-bottom: 10px;">¿No tienes acceso al sistema?</p>
+      <button class="btn btn-secondary-login" type="button" id="btnRequestAccess" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">
+        <i class="fa-solid fa-envelope"></i> Solicitar Acceso
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE SOLICITUD -->
+  <div id="modalRequest" class="hidden modal-overlay">
+    <div class="card" style="width:90%; max-width:400px;">
+      <h3 style="color: var(--neon-cyan); margin-bottom: 15px;">Solicitar Acceso</h3>
+      <p style="font-size: 0.85rem; color: var(--text-gray); margin-bottom: 20px;">
+        Ingresa tus datos. Se enviará una notificación al administrador para que autorice tu cuenta.
+      </p>
+      
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label>Correo Electrónico</label>
+        <input type="email" id="reqEmail" placeholder="tucorreo@ejemplo.com">
+      </div>
+      <div class="form-group" style="margin-bottom: 25px;">
+        <label>Nombre Completo</label>
+        <input type="text" id="reqName" placeholder="Ej: Juan Pérez">
+      </div>
+      
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-cancel" id="btnCancelRequest" style="flex:1;">Cancelar</button>
+        <button class="btn btn-primary" id="btnSendRequest" style="flex:1;">Enviar Solicitud</button>
+      </div>
+    </div>
   </div>
 
   <script src="./js/config.js"></script>
@@ -52,6 +84,40 @@
     document.addEventListener('DOMContentLoaded', () => {
       const user = sessionStorage.getItem('sw_user') || localStorage.getItem('sw_user');
       if (user) window.location.replace('app.html');
+
+      // Lógica del modal de solicitud
+      const modal = document.getElementById('modalRequest');
+      document.getElementById('btnRequestAccess').addEventListener('click', () => {
+        modal.classList.remove('hidden');
+      });
+      document.getElementById('btnCancelRequest').addEventListener('click', () => {
+        modal.classList.add('hidden');
+      });
+      
+      document.getElementById('btnSendRequest').addEventListener('click', async () => {
+        const email = document.getElementById('reqEmail').value.trim();
+        const nombre = document.getElementById('reqName').value.trim();
+        
+        if (!email || !nombre) return alert("Por favor, complete todos los campos.");
+        
+        const btn = document.getElementById('btnSendRequest');
+        btn.disabled = true;
+        btn.innerHTML = 'Enviando...';
+
+        const success = await apiService.solicitarAcceso(email, nombre);
+        
+        if (success) {
+          alert("✅ Solicitud enviada. El administrador revisará tu caso pronto.");
+          modal.classList.add('hidden');
+          document.getElementById('reqEmail').value = '';
+          document.getElementById('reqName').value = '';
+        } else {
+          alert("❌ Error al enviar la solicitud. Intente más tarde.");
+        }
+        
+        btn.disabled = false;
+        btn.innerHTML = 'Enviar Solicitud';
+      });
     });
   </script>
 </body>

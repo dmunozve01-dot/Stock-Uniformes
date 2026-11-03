@@ -22,6 +22,23 @@ class APIService {
     } catch (err) { console.warn("Error syncUser:", err); }
   }
 
+  async solicitarAcceso(email, nombre) {
+    const url = await this.getBaseUrl();
+    if (!url) return false;
+    try {
+      await fetch(url, {
+        method: "POST", 
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "solicitarAcceso", email: email, nombre: nombre })
+      });
+      return true; 
+    } catch (err) { 
+      console.warn("Error solicitarAcceso:", err);
+      return false; 
+    }
+  }
+
   async getUsers() {
     const url = await this.getBaseUrl(); if (!url) return [];
     try { const res = await fetch(`${url}?action=getUsers`); const json = await res.json(); return json.success ? json.data : []; } catch (err) { return []; }
