@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Login | Grupo ANC</title>
+  <title>SmartWarehouse - Login | Grupo ANC</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="./css/main.css">
 </head>
 <body class="login-body">
+  
+  <!-- CONTENEDOR PRINCIPAL DEL LOGIN -->
   <div class="login-card">
     <div class="brand-logo">
       <img src="./assets/logo.png" alt="Grupo ANC" onerror="this.src='https://via.placeholder.com/180x60/ffffff/D81B60?text=Grupo+ANC'">
     </div>
+    
     <h2>Control de Uniformes</h2>
     <p>Ingresa con tu cuenta corporativa</p>
 
@@ -24,19 +27,23 @@
       <label for="rememberMe">Mantener sesión iniciada</label>
     </div>
 
-    <!-- BOTÓN DE SOLICITAR ACCESO -->
-    <div style="margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px;">
-      <p style="font-size: 0.85rem; color: var(--text-gray); margin-bottom: 10px;">¿No tienes acceso al sistema?</p>
-      <button class="btn btn-secondary-login" type="button" id="btnRequestAccess" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">
+    <div class="divider"><span>o</span></div>
+
+    <!-- BOTÓN DE SOLICITAR ACCESO (Estilo más limpio) -->
+    <div style="margin-top: 15px;">
+      <p style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 10px;">¿No tienes acceso al sistema?</p>
+      <button class="btn btn-cancel" type="button" id="btnRequestAccess" style="width: 100%; font-size: 0.9rem;">
         <i class="fa-solid fa-envelope"></i> Solicitar Acceso
       </button>
     </div>
   </div>
 
-  <!-- MODAL DE SOLICITUD -->
+  <!-- MODAL DE SOLICITUD (Fuera del login-card para que flote sobre todo) -->
   <div id="modalRequest" class="hidden modal-overlay">
     <div class="card" style="width:90%; max-width:400px;">
-      <h3 style="color: var(--neon-cyan); margin-bottom: 15px;">Solicitar Acceso</h3>
+      <h3 style="color: var(--neon-cyan); margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
+        <i class="fa-solid fa-envelope-open-text"></i> Solicitar Acceso
+      </h3>
       <p style="font-size: 0.85rem; color: var(--text-gray); margin-bottom: 20px;">
         Ingresa tus datos. Se enviará una notificación al administrador para que autorice tu cuenta.
       </p>
@@ -52,7 +59,7 @@
       
       <div style="display:flex; gap:10px;">
         <button class="btn btn-cancel" id="btnCancelRequest" style="flex:1;">Cancelar</button>
-        <button class="btn btn-primary" id="btnSendRequest" style="flex:1;">Enviar Solicitud</button>
+        <button class="btn btn-primary" id="btnSendRequest" style="flex:1;">Enviar</button>
       </div>
     </div>
   </div>
@@ -82,14 +89,17 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Si ya está logueado, redirigir
       const user = sessionStorage.getItem('sw_user') || localStorage.getItem('sw_user');
       if (user) window.location.replace('app.html');
 
       // Lógica del modal de solicitud
       const modal = document.getElementById('modalRequest');
+      
       document.getElementById('btnRequestAccess').addEventListener('click', () => {
         modal.classList.remove('hidden');
       });
+      
       document.getElementById('btnCancelRequest').addEventListener('click', () => {
         modal.classList.add('hidden');
       });
@@ -102,7 +112,7 @@
         
         const btn = document.getElementById('btnSendRequest');
         btn.disabled = true;
-        btn.innerHTML = 'Enviando...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
 
         const success = await apiService.solicitarAcceso(email, nombre);
         
@@ -116,7 +126,7 @@
         }
         
         btn.disabled = false;
-        btn.innerHTML = 'Enviar Solicitud';
+        btn.innerHTML = 'Enviar';
       });
     });
   </script>
