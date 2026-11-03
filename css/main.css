@@ -1,5 +1,5 @@
 :root {
-  /* Paleta Dark Neón */
+  /* MODO OSCURO (Por defecto) */
   --neon-cyan: #00f0ff;        
   --neon-cyan-hover: #00c4d1;
   --neon-green: #39ff14;       
@@ -20,38 +20,75 @@
   --shadow-neon: 0 0 10px rgba(0, 240, 255, 0.2);
 }
 
+/* MODO CLARO (Se activa con la clase .light-mode en el body) */
+body.light-mode {
+  --bg-body: #f8fafc;          
+  --bg-card: #ffffff;          
+  --bg-hover: #f1f5f9;         
+  
+  --text-light: #0f172a;       /* Texto oscuro */
+  --text-gray: #64748b;        
+  --border-color: #cbd5e1;     
+  
+  --shadow-neon: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-body); -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; width: 100%; background-color: var(--bg-body); color: var(--text-light); }
+html, body { height: 100%; width: 100%; background-color: var(--bg-body); color: var(--text-light); transition: background-color 0.3s, color 0.3s; }
 
 /* LOGIN UI */
 .login-body { 
   display: flex; justify-content: center; align-items: center; height: 100vh; 
   background: var(--bg-body); 
-  background-image: radial-gradient(circle at center, #1a1a2e 0%, #09090b 100%);
+  background-image: radial-gradient(circle at center, var(--bg-hover) 0%, var(--bg-body) 100%);
   padding: 20px; 
 }
 .login-card { 
   background: var(--bg-card); padding: 45px 35px; border-radius: 20px; 
   width: 100%; max-width: 400px; text-align: center; 
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 20px rgba(0, 240, 255, 0.05); 
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2), 0 0 20px rgba(0, 240, 255, 0.05); 
   border: 1px solid var(--border-color); 
+  transition: background-color 0.3s, border-color 0.3s;
 }
 .brand-logo { margin-bottom: 25px; display: flex; justify-content: center; }
 .brand-logo img { max-width: 160px; height: auto; filter: drop-shadow(0 0 8px rgba(255,255,255,0.2)); }
 .login-card h2 { font-family: var(--font-heading); font-size: 1.6rem; color: var(--text-light); margin-bottom: 5px; }
 .login-card p { font-size: 0.9rem; color: var(--text-gray); margin-bottom: 30px; }
 .google-btn-wrapper { display: flex; justify-content: center; margin-bottom: 15px; min-height: 44px; }
-.google-btn-wrapper iframe { filter: invert(1) hue-rotate(180deg); border-radius: 20px; }
+.google-btn-wrapper iframe { filter: invert(0); border-radius: 20px; }
+body:not(.light-mode) .google-btn-wrapper iframe { filter: invert(1) hue-rotate(180deg); }
 .remember-option { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 20px 0; font-size: 0.85rem; color: var(--text-gray); }
 .remember-option input { accent-color: var(--neon-cyan); }
+
+/* BOTÓN DE TEMA */
+.theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-card);
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: all 0.3s;
+  z-index: 1000;
+}
+.theme-toggle:hover { background: var(--bg-hover); }
 
 /* DASHBOARD UI */
 .dashboard-container { 
   max-width: 1100px; margin: 0 auto; background: var(--bg-body); 
   padding: 30px; border-radius: 0; min-height: 100vh; 
+  transition: background-color 0.3s;
 }
 @media (min-width: 768px) { 
-  .dashboard-container { margin: 40px auto; border-radius: 20px; min-height: calc(100vh - 80px); border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.5); } 
+  .dashboard-container { margin: 40px auto; border-radius: 20px; min-height: calc(100vh - 80px); border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.1); } 
 }
 
 .user-profile { display: flex; align-items: center; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 25px; }
@@ -65,6 +102,7 @@ html, body { height: 100%; width: 100%; background-color: var(--bg-body); color:
 .mode-switch { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; background: var(--bg-card); padding: 6px; border-radius: 12px; width: fit-content; border: 1px solid var(--border-color); }
 .btn-tab { padding: 10px 20px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-gray); display: flex; align-items: center; gap: 8px; font-size: 0.9rem; transition: all 0.3s; }
 .btn-tab.active { background: var(--bg-hover); color: var(--neon-cyan); box-shadow: inset 0 0 5px rgba(0, 240, 255, 0.1); }
+body.light-mode .btn-tab.active { color: #0284c7; } /* Ajuste para modo claro */
 .btn-tab:hover:not(.active) { color: var(--text-light); }
 
 .hidden { display: none !important; }
@@ -73,38 +111,15 @@ html, body { height: 100%; width: 100%; background-color: var(--bg-body); color:
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Tarjetas */
-.card { border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; background: var(--bg-card); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.card { border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; background: var(--bg-card); box-shadow: 0 4px 20px rgba(0,0,0,0.1); transition: background-color 0.3s, border-color 0.3s; }
 .card h3 { margin-bottom: 20px; font-size: 1.1rem; color: var(--text-light); display: flex; align-items: center; gap: 10px; font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
 
 /* KPI CARDS DASHBOARD */
-.kpi-card {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 25px;
-  transition: transform 0.3s;
-}
-.kpi-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-}
-.kpi-icon {
-  font-size: 2.5rem;
-  opacity: 0.8;
-}
-.kpi-info h4 {
-  font-size: 0.8rem;
-  color: var(--text-gray);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 5px;
-}
-.kpi-info h2 {
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--text-light);
-  font-family: var(--font-heading);
-}
+.kpi-card { display: flex; align-items: center; gap: 20px; padding: 25px; transition: transform 0.3s; }
+.kpi-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.kpi-icon { font-size: 2.5rem; opacity: 0.8; }
+.kpi-info h4 { font-size: 0.8rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.kpi-info h2 { font-size: 2rem; font-weight: 800; color: var(--text-light); font-family: var(--font-heading); }
 
 /* Formularios */
 .form-grid { display: flex; gap: 15px; flex-wrap: wrap; }
@@ -114,16 +129,18 @@ html, body { height: 100%; width: 100%; background-color: var(--bg-body); color:
   padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; 
   outline: none; width: 100%; transition: all 0.3s; background: var(--bg-body); color: var(--text-light);
 }
-.form-group input:focus, .form-group select:focus, .search-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.1); }
+.form-group input:focus, .form-group select:focus, .search-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.2); }
 .search-input { max-width: 300px; }
 
 /* Botones Generales */
 .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s; }
 .btn-primary { background: transparent !important; color: var(--neon-cyan) !important; border: 1px solid var(--neon-cyan) !important; box-shadow: 0 0 10px rgba(0, 240, 255, 0.1) !important; }
+body.light-mode .btn-primary { color: #0284c7 !important; border-color: #0284c7 !important; }
 .btn-primary:hover { background: rgba(0, 240, 255, 0.1) !important; box-shadow: 0 0 15px rgba(0, 240, 255, 0.3) !important; transform: translateY(-2px); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .btn-neon-green { background: transparent !important; color: var(--neon-green) !important; border: 1px solid var(--neon-green) !important; }
+body.light-mode .btn-neon-green { color: #16a34a !important; border-color: #16a34a !important; }
 .btn-neon-green:hover { background: rgba(57, 255, 20, 0.1) !important; box-shadow: 0 0 15px rgba(57, 255, 20, 0.3) !important; }
 
 .btn-neon-blue { background: transparent !important; color: #0ea5e9 !important; border: 1px solid #0ea5e9 !important; }
@@ -136,9 +153,10 @@ html, body { height: 100%; width: 100%; background-color: var(--bg-body); color:
 .table-responsive { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); }
 .data-table { width: 100%; border-collapse: collapse; min-width: 500px; }
 .data-table th, .data-table td { padding: 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
-.data-table th { background: var(--bg-body); font-weight: 700; color: var(--text-gray); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+.data-table th { background: var(--bg-hover); font-weight: 700; color: var(--text-gray); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
 .data-table tbody tr:hover { background: var(--bg-hover); }
 .data-table td b { color: var(--neon-cyan); font-size: 1rem; }
+body.light-mode .data-table td b { color: #0284c7; }
 .empty-state { text-align: center; padding: 40px; color: var(--text-gray); font-size: 0.9rem; }
 
 /* Botones de acción en Tablas (Neón) */
@@ -146,37 +164,22 @@ html, body { height: 100%; width: 100%; background-color: var(--bg-body); color:
 .btn-delete { color: var(--danger); background: rgba(255, 0, 60, 0.1); border-color: rgba(255, 0, 60, 0.2); }
 .btn-delete:hover { background: rgba(255, 0, 60, 0.2); box-shadow: 0 0 10px rgba(255, 0, 60, 0.4); }
 .btn-restore { color: var(--neon-green); background: rgba(57, 255, 20, 0.1); border-color: rgba(57, 255, 20, 0.2); }
+body.light-mode .btn-restore { color: #16a34a; }
 .btn-restore:hover { background: rgba(57, 255, 20, 0.2); box-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
 
-/* =========================================
-   FORZAR MODALES CENTRADOS Y OSCUROS
-   ========================================= */
+/* MODALES */
 #modalSku, #modalPersonal, #modalRequest {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: rgba(0, 0, 0, 0.85) !important; /* Fondo oscuro semitransparente */
-  backdrop-filter: blur(5px) !important; /* Efecto borroso */
-  display: flex !important;
-  justify-content: center !important; /* Centrado horizontal */
-  align-items: center !important;     /* Centrado vertical */
-  z-index: 9999 !important;
-  padding: 20px !important;
+  position: fixed !important; top: 0 !important; left: 0 !important;
+  width: 100vw !important; height: 100vh !important;
+  background: rgba(0, 0, 0, 0.85) !important; backdrop-filter: blur(5px) !important;
+  display: flex !important; justify-content: center !important; align-items: center !important;
+  z-index: 9999 !important; padding: 20px !important;
 }
-
-/* Ocultar cuando tengan la clase hidden */
-#modalSku.hidden, #modalPersonal.hidden, #modalRequest.hidden {
-  display: none !important;
-}
-
-/* El cuadro oscuro dentro del modal */
+body.light-mode #modalSku, body.light-mode #modalPersonal, body.light-mode #modalRequest { background: rgba(255, 255, 255, 0.85) !important; }
+#modalSku.hidden, #modalPersonal.hidden, #modalRequest.hidden { display: none !important; }
 #modalSku .card, #modalPersonal .card, #modalRequest .card {
   background: var(--bg-card) !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
   border: 1px solid var(--border-color) !important;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
+  width: 100%; max-height: 90vh; overflow-y: auto;
 }

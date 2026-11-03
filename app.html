@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Grupo ANC</title>
+  <title>SmartWarehouse - Grupo ANC</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="./css/main.css">
 </head>
 <body>
+  <button class="theme-toggle" id="themeToggle" title="Cambiar tema">
+    <i class="fa-solid fa-moon" id="themeIcon"></i>
+  </button>
+
   <div class="dashboard-container">
     
     <div class="user-profile">
@@ -30,72 +34,44 @@
 
     <!-- PANEL DASHBOARD -->
     <section id="panelDashboard" class="panel active">
-      
       <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
-        
         <div class="card kpi-card" style="border-top: 4px solid var(--neon-cyan);">
           <div class="kpi-icon"><i class="fa-solid fa-shirt"></i></div>
-          <div class="kpi-info">
-            <h4>Total Prendas</h4>
-            <h2 id="kpiTotalPrendas">0</h2>
-          </div>
+          <div class="kpi-info"><h4>Total Prendas</h4><h2 id="kpiTotalPrendas">0</h2></div>
         </div>
-
         <div class="card kpi-card" style="border-top: 4px solid var(--neon-green);">
           <div class="kpi-icon"><i class="fa-solid fa-barcode"></i></div>
-          <div class="kpi-info">
-            <h4>Total SKUs</h4>
-            <h2 id="kpiTotalSkus">0</h2>
-          </div>
+          <div class="kpi-info"><h4>Total SKUs</h4><h2 id="kpiTotalSkus">0</h2></div>
         </div>
-
         <div class="card kpi-card" style="border-top: 4px solid var(--danger);">
           <div class="kpi-icon"><i class="fa-solid fa-hand-holding"></i></div>
-          <div class="kpi-info">
-            <h4>Entregas del Mes</h4>
-            <h2 id="kpiEntregas">0</h2>
-          </div>
+          <div class="kpi-info"><h4>Entregas del Mes</h4><h2 id="kpiEntregas">0</h2></div>
         </div>
-
         <div class="card kpi-card" style="border-top: 4px solid #a855f7;">
           <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
-          <div class="kpi-info">
-            <h4>Personal Activo</h4>
-            <h2 id="kpiPersonal">0</h2>
-          </div>
+          <div class="kpi-info"><h4>Personal Activo</h4><h2 id="kpiPersonal">0</h2></div>
         </div>
-
       </div>
 
       <div class="card">
         <h3><i class="fa-solid fa-clock-rotate-left"></i> Últimos Movimientos</h3>
         <div class="table-responsive">
           <table id="tableDashboardMoves" class="data-table">
-            <thead>
-              <tr><th>ID Mov.</th><th>Fecha</th><th>Tipo</th><th>SKU</th><th>Cant.</th><th>Empleado</th></tr>
-            </thead>
+            <thead><tr><th>ID Mov.</th><th>Fecha</th><th>Tipo</th><th>SKU</th><th>Cant.</th><th>Empleado</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
       </div>
-
     </section>
 
     <!-- PANEL INVENTARIO -->
     <section id="panelInv" class="panel hidden">
       <div id="adminTools" class="hidden" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
-        <button class="btn btn-primary" id="btnNewSku" style="flex: 1; min-width: 200px;">
-          <i class="fa-solid fa-plus"></i> Registrar Prenda Nueva
-        </button>
-        <button class="btn btn-neon-green" id="btnDownloadTemplate" style="flex: 1; min-width: 200px;">
-          <i class="fa-solid fa-download"></i> Descargar Plantilla Excel
-        </button>
-        <button class="btn btn-neon-blue" id="btnUploadExcel" style="flex: 1; min-width: 200px;">
-          <i class="fa-solid fa-file-excel"></i> Subir Excel (Sumar Stock)
-        </button>
+        <button class="btn btn-primary" id="btnNewSku" style="flex: 1; min-width: 200px;"><i class="fa-solid fa-plus"></i> Registrar Prenda Nueva</button>
+        <button class="btn btn-neon-green" id="btnDownloadTemplate" style="flex: 1; min-width: 200px;"><i class="fa-solid fa-download"></i> Descargar Plantilla Excel</button>
+        <button class="btn btn-neon-blue" id="btnUploadExcel" style="flex: 1; min-width: 200px;"><i class="fa-solid fa-file-excel"></i> Subir Excel (Sumar Stock)</button>
         <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
       </div>
-
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
           <h3 style="margin: 0; border:none; padding:0;"><i class="fa-solid fa-boxes-stacked"></i> Stock Actual</h3>
@@ -103,11 +79,7 @@
         </div>
         <div class="table-responsive">
           <table id="tableInventory" class="data-table">
-            <thead>
-              <tr>
-                <th>ID SKU</th><th>Tipo</th><th>Talla</th><th>Color</th><th>Ubicación</th><th>Stock</th><th class="hidden admin-col">Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr><th>ID SKU</th><th>Tipo</th><th>Talla</th><th>Color</th><th>Ubicación</th><th>Stock</th><th class="hidden admin-col">Acciones</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -118,7 +90,6 @@
     <section id="panelMoves" class="panel hidden">
       <div class="card" style="margin-bottom: 25px;">
         <h3><i class="fa-solid fa-hand-holding"></i> Registrar Entrega a Empleado</h3>
-        
         <div class="form-grid">
           <div class="form-group" style="flex: 2;">
             <label>Buscar Empleado (DNI o Nombre)</label>
@@ -128,45 +99,34 @@
           </div>
           <div class="form-group" style="flex: 2;">
             <label>Nombre del Empleado</label>
-            <input type="text" id="moveName" placeholder="Se autocompletará..." readonly style="background:#18181b; color:#a1a1aa;">
+            <input type="text" id="moveName" placeholder="Se autocompletará..." readonly style="background:var(--bg-hover); color:var(--text-gray);">
           </div>
         </div>
 
-        <!-- NUEVO DISEÑO DE CATÁLOGO -->
         <div class="form-grid" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
           <div class="form-group" style="flex: 1;">
             <label>1. Seleccione la Prenda</label>
-            <select id="selectTipoPrenda">
-              <option value="">Cargando prendas...</option>
-            </select>
+            <select id="selectTipoPrenda"><option value="">Cargando prendas...</option></select>
           </div>
-          
           <div class="form-group" style="flex: 2;">
             <label>2. Ubicación y Talla (Stock)</label>
-            <select id="selectUbicacion" disabled>
-              <option value="">Primero seleccione una prenda...</option>
-            </select>
+            <select id="selectUbicacion" disabled><option value="">Primero seleccione una prenda...</option></select>
             <input type="hidden" id="moveSku">
           </div>
-
           <div class="form-group" style="max-width: 120px;">
             <label>3. Cantidad</label>
             <input type="number" id="moveQty" value="1" min="1">
           </div>
         </div>
 
-        <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 25px; width: 100%; max-width: 300px;">
-          <i class="fa-solid fa-check"></i> Registrar Entrega y Descontar
-        </button>
+        <button class="btn btn-primary" id="btnSaveMove" style="margin-top: 25px; width: 100%; max-width: 300px;"><i class="fa-solid fa-check"></i> Registrar Entrega y Descontar</button>
       </div>
 
       <div class="card">
         <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Entregas</h3>
         <div class="table-responsive">
           <table id="tableMoves" class="data-table">
-            <thead>
-              <tr><th>ID Mov.</th><th>Fecha</th><th>SKU</th><th>Cant.</th><th>DNI</th><th>Empleado</th><th>Admin</th><th>Acción</th></tr>
-            </thead>
+            <thead><tr><th>ID Mov.</th><th>Fecha</th><th>SKU</th><th>Cant.</th><th>DNI</th><th>Empleado</th><th>Admin</th><th>Acción</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -178,22 +138,14 @@
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
           <h3 style="margin: 0; border:none; padding:0;"><i class="fa-solid fa-users"></i> Directorio de Personal</h3>
-          
           <div style="display: flex; gap: 10px; align-items: center; width: 100%; max-width: 500px;">
-            <button class="btn btn-primary" id="btnNewPersonal" style="white-space: nowrap;">
-              <i class="fa-solid fa-user-plus"></i> Agregar Personal
-            </button>
+            <button class="btn btn-primary" id="btnNewPersonal" style="white-space: nowrap;"><i class="fa-solid fa-user-plus"></i> Agregar</button>
             <input type="text" id="searchPersonal" class="search-input" placeholder="🔍 Buscar por DNI o Nombre..." style="flex: 1;">
           </div>
         </div>
-
         <div class="table-responsive">
           <table id="tablePersonal" class="data-table">
-            <thead>
-              <tr>
-                <th>ID Empleado</th><th>Nombre</th><th>Posición</th><th>Cliente</th><th>Turno</th><th>Estado</th><th class="hidden admin-col">Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr><th>ID Empleado</th><th>Nombre</th><th>Posición</th><th>Cliente</th><th>Turno</th><th>Estado</th><th class="hidden admin-col">Acciones</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -206,9 +158,7 @@
         <h3><i class="fa-solid fa-trash-can"></i> Movimientos y Prendas Eliminadas</h3>
         <div class="table-responsive">
           <table id="tableTrash" class="data-table">
-            <thead>
-              <tr><th>ID / SKU</th><th>Fecha</th><th>Detalle</th><th>Cant.</th><th>Empleado / Ubic</th><th>Acción</th></tr>
-            </thead>
+            <thead><tr><th>ID / SKU</th><th>Fecha</th><th>Detalle</th><th>Cant.</th><th>Empleado / Ubic</th><th>Acción</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -221,14 +171,17 @@
         <h3><i class="fa-solid fa-users-gear"></i> Gestión de Usuarios</h3>
         <div class="table-responsive">
           <table id="tableUsers" class="data-table">
-            <thead>
-              <tr><th>Email</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acción</th></tr>
-            </thead>
+            <thead><tr><th>Email</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
       </div>
     </section>
+
+    <!-- FOOTER DERECHOS RESERVADOS -->
+    <div style="margin-top: 40px; text-align: center; font-size: 0.75rem; color: var(--text-gray); border-top: 1px solid var(--border-color); padding-top: 20px;">
+      &copy; 2026 Desarrollado por <strong>Dick Marcelo Muñoz Vela</strong> - Todos los derechos reservados.
+    </div>
 
   </div>
 
@@ -237,7 +190,6 @@
     <div class="card" style="width:90%; max-width:500px;">
       <h3 id="modalSkuTitle">Registrar Prenda Nueva</h3>
       <p id="modalSkuId" style="font-size:0.8rem; color:var(--text-gray); margin-bottom:15px; display:none;"></p>
-      
       <div class="form-grid">
         <div class="form-group"><label>Tipo</label><input type="text" id="skuType" placeholder="Ej: Camisa"></div>
         <div class="form-group"><label>Talla</label><input type="text" id="skuSize" placeholder="Ej: M"></div>
@@ -245,7 +197,6 @@
         <div class="form-group"><label>Ubicación</label><input type="text" id="skuLocation" placeholder="Ej: Mass-09-01-02-01"></div>
         <div class="form-group"><label>Stock</label><input type="number" id="skuStock" value="0"></div>
       </div>
-      
       <div style="display:flex; gap:10px; margin-top:25px;">
         <button class="btn btn-cancel" id="btnCancelSku">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveSku" style="flex: 1;">Guardar</button>
@@ -257,23 +208,14 @@
   <div id="modalPersonal" class="hidden modal-overlay">
     <div class="card" style="width:90%; max-width:600px;">
       <h3 id="modalPersonalTitle">Registrar Nuevo Ingreso</h3>
-      
       <div class="form-grid">
         <div class="form-group"><label>ID Empleado (DNI)</label><input type="text" id="persId" placeholder="Ej: 71004570" maxlength="8"></div>
         <div class="form-group"><label>Nombre Completo</label><input type="text" id="persName" placeholder="Ej: KEVIN JESUS BURGOS QUIROZ"></div>
         <div class="form-group"><label>Fecha Nacimiento</label><input type="date" id="persDate"></div>
         <div class="form-group"><label>Posición</label><input type="text" id="persPosition" placeholder="Ej: ASISTENTE DE ALMACEN"></div>
         <div class="form-group"><label>Cliente</label><input type="text" id="persClient" placeholder="Ej: CD OSLO TRUJILLO"></div>
-        <div class="form-group">
-          <label>Turno</label>
-          <select id="persShift">
-            <option value="DÍA">DÍA</option>
-            <option value="NOCHE">NOCHE</option>
-            <option value="ROTATIVO">ROTATIVO</option>
-          </select>
-        </div>
+        <div class="form-group"><label>Turno</label><select id="persShift"><option value="DÍA">DÍA</option><option value="NOCHE">NOCHE</option><option value="ROTATIVO">ROTATIVO</option></select></div>
       </div>
-      
       <div style="display:flex; gap:10px; margin-top:25px;">
         <button class="btn btn-cancel" id="btnCancelPersonal">Cancelar</button>
         <button class="btn btn-primary" id="btnSavePersonal" style="flex: 1;">Guardar Registro</button>
@@ -286,5 +228,30 @@
   <script src="./js/core/apiService.js"></script>
   <script src="./js/auth.js"></script>
   <script src="./js/ui/appController.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const themeToggle = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      
+      const currentTheme = localStorage.getItem('sw_theme');
+      if (currentTheme === 'light') {
+        document.body.classList.add('light-mode');
+        themeIcon.classList.replace('fa-moon', 'fa-sun');
+      }
+
+      themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+        
+        if (document.body.classList.contains('light-mode')) {
+          localStorage.setItem('sw_theme', 'light');
+          themeIcon.classList.replace('fa-moon', 'fa-sun');
+        } else {
+          localStorage.setItem('sw_theme', 'dark');
+          themeIcon.classList.replace('fa-sun', 'fa-moon');
+        }
+      });
+    });
+  </script>
 </body>
 </html>
