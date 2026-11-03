@@ -10,21 +10,30 @@ async function saveUserSession(userData) {
     try {
       const res = await apiService.getUserRole(userData.email);
       
+      // VALIDACIONES DE SEGURIDAD
       if (res.error === "TU_CUENTA_ESTA_BLOQUEADA") {
-        alert("🚫 Tu cuenta ha sido bloqueada por un administrador. Contacta a soporte.");
+        alert("🚫 Tu cuenta está BLOQUEADA por un administrador. Contacta a soporte.");
+        if (typeof google !== 'undefined' && google.accounts) google.accounts.id.disableAutoSelect();
+        return; 
+      }
+      
+      if (res.error === "NO_AUTORIZADO") {
+        alert("⛔ Acceso Denegado.\n\nTu correo (" + userData.email + ") no está registrado en el sistema de Grupo ANC. Solicita acceso al administrador.");
         if (typeof google !== 'undefined' && google.accounts) google.accounts.id.disableAutoSelect();
         return; 
       }
 
+      // Si pasó las pruebas, guardamos sus datos
       userData.role = res.role || 'USER';
       if (res.name && res.name !== 'Desconocido') userData.name = res.name;
       
-      apiService.syncUser(userData); 
     } catch (err) {
-      userData.role = "USER";
+      alert("Error de conexión con el servidor.");
+      return;
     }
   } else {
-    userData.role = "USER";
+    alert("Error interno del sistema.");
+    return;
   }
 
   if (remember) localStorage.setItem('sw_user', JSON.stringify(userData));
