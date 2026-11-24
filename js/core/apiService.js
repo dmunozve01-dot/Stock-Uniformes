@@ -130,5 +130,25 @@ class APIService {
       return { success: true, msg: "Lote procesado. Revisa la tabla." }; 
     } catch (err) { return { success: false }; }
   }
+
+  // ==========================================
+  // NUEVO MÉTODO: TRASLADO A OFICINA
+  // ==========================================
+  async transferToOffice(transferData) {
+    const url = await this.getBaseUrl(); 
+    if (!url) return { success: false, error: "URL no configurada" };
+    try {
+      // Usamos text/plain para evitar problemas de CORS con Google Apps Script
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "transferToOffice", transfer: transferData })
+      });
+      return await res.json();
+    } catch (err) { 
+      console.error("Error transferToOffice:", err);
+      return { success: false, error: "Error de conexión" }; 
+    }
+  }
 }
 const apiService = new APIService();
